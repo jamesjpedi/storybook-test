@@ -1,0 +1,121 @@
+# BHHC design system — Azure DevOps pipeline
+#
+# Required pipeline (secret) variable:
+#   MUI_X_LICENSE_KEY  — MUI X Premium license; inlined into the published package
+#
+# Required for the Publish stage (Azure Artifacts):
+#   npmFeed            — Artifacts feed name (org- or project-scoped)
+#                        Override in the pipeline UI if it is not `bhhc-design-system`.
+#
+# Grant the project Build Service "Contributor" on the feed so npm publish can write.
+# Publish runs only on tags matching v* (e.g. v0.1.0). Bump package.json version first.
+
+trigger:
+  branches:
+    include:
+      - main
+      - master
+  tags:
+    include:
+      - v*
+
+pr:
+  branches:
+    include:
+      - main
+      - master
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  nodeVersion: '22.x'
+  npmFeed: 'bhhc-design-system'
+
+stages:
+  - stage: Build
+    displayName: Lint, typecheck, and build
+    jobs:
+      - job: Ci
+        displayName: CI
+        steps:
+          - task: NodeTool@0
+            displayName: Use Node $(nodeVersion)
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - task: Cache@2
+            displayName: Cache npm
+            inputs:
+              key: 'npm | "$(Agent.OS)" | package-lock.json'
+              restoreKeys: |
+                npm | "$(Agent.OS)"
+              path: $(Pipeline.Workspace)/.npm
+
+          - script: npm ci --cache $(Pipeline.Workspace)/.npm --prefer-offline
+            displayName: npm ci
+
+          - script: npm run lint
+            displayName: Lint
+
+          - script: npm run typecheck
+            displayName: Typecheck
+
+          - script: npm run build:lib
+            displayName: Build library (MUI X signing)
+            env:
+              MUI_X_LICENSE_KEY: $(MUI_X_LICENSE_KEY)
+
+          - script: npm run build-storybook
+            displayName: Build Storybook
+
+          - script: |
+              set -euo pipefail
+              STAGE="$(Build.ArtifactStagingDirectory)/npm"
+              mkdir -p "$STAGE"
+              cp package.json README.md GETTING_STARTED.md "$STAGE/"
+              cp -R dist "$STAGE/dist"
+            displayName: Stage npm package (no node_modules)
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish npm package artifact
+            inputs:
+              targetPath: $(Build.ArtifactStagingDirectory)/npm
+              artifact: package
+              publishLocation: pipeline
+
+          - task: PublishPipelineArtifact@1
+            displayName: Publish Storybook static site
+            inputs:
+              targetPath: $(Build.SourcesDirectory)/storybook-static
+              artifact: storybook
+              publishLocation: pipeline
+
+  - stage: Publish
+    displayName: Publish npm package
+    dependsOn: Build
+    condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+    jobs:
+      - job: Npm
+        displayName: Azure Artifacts
+        steps:
+          - download: current
+            artifact: package
+
+          - task: NodeTool@0
+            displayName: Use Node $(nodeVersion)
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          # dist is already signed in Build. Skip prepublishOnly (it would rebuild).
+          - script: npm pkg delete scripts.prepublishOnly
+            displayName: Skip rebuild on publish
+            workingDirectory: $(Pipeline.Workspace)/package
+
+          - task: Npm@1
+            displayName: Publish bhhc-design-system
+            inputs:
+              command: publish
+              workingDir: $(Pipeline.Workspace)/package
+              publishRegistry: useFeed
+              publishFeed: $(npmFeed)

@@ -89,3 +89,5 @@ Install `dayjs` (or `date-fns` / `luxon` / `moment`) in the consumer app. It is 
 You do not configure MUI X in the consumer app. Importing any `bhhc-design-system` entry sets the license key that was inlined when this package was built.
 
 For local Storybook and `npm run build:lib`, copy `.env.example` to `.env` and set `MUI_X_LICENSE_KEY`.
+
+CI/CD in Azure DevOps uses the same key as a secret pipeline variable and publishes to Azure Artifacts on `v*` tags. See [README.md](README.md#azure-devops).

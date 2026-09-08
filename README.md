@@ -10,10 +10,21 @@ npm run storybook      # Component explorer at http://localhost:6006
 npm run dev            # Vite demo app
 npm run build          # Vite demo app to dist-app/
 npm run build:lib      # Library build for npm (requires MUI_X_LICENSE_KEY)
+npm run typecheck
+npm run lint
 npm run build-storybook
 ```
 
 Copy `.env.example` to `.env` and set `MUI_X_LICENSE_KEY` before `build:lib`.
+
+## Azure DevOps
+
+[azure-pipelines.yml](azure-pipelines.yml) runs lint, typecheck, `build:lib` (MUI X signing), and Storybook on PRs and `main`. It publishes `bhhc-design-system` to Azure Artifacts when you push a `v*` tag (for example `v0.1.0`).
+
+1. Create pipeline variable **`MUI_X_LICENSE_KEY`** (secret). Do not commit the key.
+2. Create an Azure Artifacts npm feed. Set pipeline variable **`npmFeed`** to that feed name (default in YAML: `bhhc-design-system`).
+3. Give the project **Build Service** account **Contributor** on the feed.
+4. Bump `"version"` in `package.json`, commit, and tag: `git tag v0.1.0 && git push origin v0.1.0`.
 
 ## Layout
 
