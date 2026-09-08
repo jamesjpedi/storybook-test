@@ -1,7 +1,8 @@
-import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
 
 import { Button } from './Button';
+
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 const meta = {
   title: 'Components/Button',
@@ -18,6 +19,7 @@ const meta = {
 } satisfies Meta<typeof Button>;
 
 export default meta;
+
 type Story = StoryObj<typeof meta>;
 
 export const Contained: Story = {};

@@ -119,14 +119,6 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
-  "lint-staged": {
-    "*.{ts,tsx,js,jsx,mjs,cjs}": [
-      "eslint --fix --max-warnings=0"
-    ],
-    "*.{json,md,mdx,css,yml,yaml,html}": [
-      "prettier --write"
-    ]
-  },
   "peerDependencies": {
     "@types/react": "^18.0.0 || ^19.0.0",
     "@types/react-dom": "^18.0.0 || ^19.0.0",
@@ -147,6 +139,7 @@
     "@eslint/js": "^9.39.5",
     "@storybook/addon-docs": "^10.5.10",
     "@storybook/react-vite": "^10.5.10",
+    "@stylistic/eslint-plugin": "^5.10.0",
     "@types/node": "^24.13.3",
     "@types/react": "^18.3.31",
     "@types/react-dom": "^18.3.7",

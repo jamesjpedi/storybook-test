@@ -1,4 +1,5 @@
 import eslintJs from '@eslint/js';
+import stylistic from '@stylistic/eslint-plugin';
 import importX from 'eslint-plugin-import-x';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
@@ -10,21 +11,29 @@ import { configs as storybookConfigs } from 'eslint-plugin-storybook';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+const notTypeImport = '[^\\u0000]*$';
+
 const importSortGroups = [
-  // Side-effect imports (CSS, license side effects)
+  // 1. External values: React, react-dom, react-router, then other packages by name
+  [`^react$`, `^react/.+`, `^react-dom(/.*)?$`, `^react-router(/.*)?$`, `^@?\\w${notTypeImport}`],
+  // 2. Internal (parent) — farther up the tree first (`../../` before `../`)
+  [`^\\.\\.${notTypeImport}`],
+  // 3. Current folder — alphabetically by path
+  [`^\\./${notTypeImport}`],
+  // 4. External type imports — React first, then by package name
+  [
+    '^react\\u0000$',
+    '^react/.*\\u0000$',
+    '^react-dom.*\\u0000$',
+    '^react-router.*\\u0000$',
+    '^@?\\w.*\\u0000$',
+  ],
+  // 5. Internal type imports
+  ['^[.].*\\u0000$'],
+  // 6. Style imports
+  ['^.+\\.s?css$'],
+  // 7. Other side-effect imports
   ['^\\u0000'],
-  // Node builtins
-  ['^node:'],
-  // React
-  ['^react$', '^react-dom', '^react/'],
-  // Design-system stack
-  ['^@mui/', '^@emotion/', '^@base-ui/'],
-  // Other packages
-  ['^@?\\w'],
-  // Parent
-  ['^\\.\\.(?!/?$)', '^\\.\\./?$'],
-  // Sibling and index
-  ['^\\./(?=.*/)(?!/?$)', '^\\.(?!/?$)', '^\\./?$'],
 ];
 
 const paddingLineBetweenStatements: [
@@ -35,9 +44,28 @@ const paddingLineBetweenStatements: [
   { blankLine: 'always', prev: 'import', next: '*' },
   { blankLine: 'any', prev: 'import', next: 'import' },
   { blankLine: 'always', prev: 'function', next: 'function' },
-  { blankLine: 'always', prev: 'function', next: '*' },
   { blankLine: 'always', prev: '*', next: 'function' },
+  { blankLine: 'always', prev: 'function', next: '*' },
+  { blankLine: 'always', prev: '*', next: 'export' },
+  { blankLine: 'any', prev: 'export', next: 'export' },
+  { blankLine: 'always', prev: '*', next: 'type' },
+  { blankLine: 'always', prev: 'type', next: '*' },
+  { blankLine: 'always', prev: '*', next: 'interface' },
+  { blankLine: 'always', prev: 'interface', next: '*' },
+  { blankLine: 'always', prev: '*', next: 'multiline-const' },
+  { blankLine: 'always', prev: 'multiline-const', next: '*' },
+  { blankLine: 'any', prev: 'singleline-const', next: 'singleline-const' },
   { blankLine: 'always', prev: '*', next: 'return' },
+];
+
+const barrelPaddingLineBetweenStatements: [
+  'error',
+  ...{ blankLine: 'always' | 'any'; prev: string | string[]; next: string | string[] }[],
+] = [
+  'error',
+  { blankLine: 'always', prev: 'import', next: '*' },
+  { blankLine: 'any', prev: 'import', next: 'import' },
+  { blankLine: 'any', prev: 'export', next: 'export' },
 ];
 
 const reactRecommended = react.configs.flat.recommended;
@@ -57,6 +85,8 @@ export default tseslint.config(
       'storybook-static/**',
       'coverage/**',
       'package-lock.json',
+      '.storybook/public/**',
+      '.storybook/test.html',
     ],
   },
   eslintJs.configs.recommended,
@@ -111,6 +141,7 @@ export default tseslint.config(
     name: 'bhhc/imports-and-layout',
     files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
     plugins: {
+      '@stylistic': stylistic,
       'simple-import-sort': simpleImportSort,
       'import-x': importX,
     },
@@ -121,7 +152,8 @@ export default tseslint.config(
       'import-x/newline-after-import': 'error',
       'import-x/no-duplicates': 'error',
       'import-x/no-default-export': 'error',
-      'padding-line-between-statements': paddingLineBetweenStatements,
+      'import-x/consistent-type-specifier-style': ['error', 'prefer-top-level'],
+      '@stylistic/padding-line-between-statements': paddingLineBetweenStatements,
       eqeqeq: ['error', 'always'],
       'prefer-const': 'error',
       'no-var': 'error',
@@ -130,7 +162,7 @@ export default tseslint.config(
         'error',
         {
           prefer: 'type-imports',
-          fixStyle: 'inline-type-imports',
+          fixStyle: 'separate-type-imports',
         },
       ],
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
@@ -168,6 +200,7 @@ export default tseslint.config(
     rules: {
       'react-refresh/only-export-components': 'off',
       'simple-import-sort/exports': 'off',
+      '@stylistic/padding-line-between-statements': barrelPaddingLineBetweenStatements,
     },
   },
   {

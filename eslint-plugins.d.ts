@@ -9,5 +9,6 @@ declare module 'eslint-plugin-jsx-a11y' {
   };
 
   const plugin: JsxA11yPlugin;
+
   export default plugin;
 }

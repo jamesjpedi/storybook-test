@@ -1,8 +1,7 @@
-import './ChangelogViewer.css';
-
 import { useEffect, useState } from 'react';
-
 import Markdown from 'react-markdown';
+
+import './ChangelogViewer.css';
 
 const changelogLoaders = import.meta.glob('./versions/*.md', {
   query: '?raw',

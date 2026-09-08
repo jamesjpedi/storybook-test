@@ -1,8 +1,8 @@
 import { CardContent, Typography } from '@mui/material';
 
-import type { Meta, StoryObj } from '@storybook/react-vite';
-
 import { Card } from './Card';
+
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 const meta = {
   title: 'Components/Card',
@@ -14,6 +14,7 @@ const meta = {
 } satisfies Meta<typeof Card>;
 
 export default meta;
+
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {

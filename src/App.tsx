@@ -1,9 +1,9 @@
-import './index.css';
-
 import { CardContent, CssBaseline, ThemeProvider, Typography } from '@mui/material';
 
 import { Button, Card } from './components';
 import { theme } from './theme';
+
+import './index.css';
 
 function App() {
   return (

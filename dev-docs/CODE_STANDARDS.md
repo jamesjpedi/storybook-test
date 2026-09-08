@@ -117,6 +117,7 @@ Resolved from [`eslint.config.ts`](../eslint.config.ts) (see `eslint --print-con
 | `eslint-plugin-jsx-a11y` recommended                          | Accessibility                                                                                |
 | `eslint-plugin-storybook` `flat/recommended`                  | CSF stories                                                                                  |
 | `eslint-plugin-simple-import-sort` + `eslint-plugin-import-x` | Import/export order                                                                          |
+| `@stylistic/eslint-plugin`                                    | Blank lines between functions, types, and exports (not Prettier formatting)                  |
 | `eslint-plugin-prettier/recommended` (**last**)               | Disables formatting rules that clash with Prettier **and** reports Prettier as ESLint errors |
 
 Type-aware linting uses `parserOptions.projectService` with `tsconfigRootDir` at the repo root.
@@ -129,23 +130,33 @@ These are set explicitly in `eslint.config.ts` (not only inherited).
 
 ### `simple-import-sort/imports` — **error**
 
-Groups, top to bottom: side-effect → `node:` → `react` / `react-dom` → `@mui` / `@emotion` / `@base-ui` → other packages → parent → sibling.
+Imports are grouped and separated by a blank line. **Within** a group, modules are sorted by **package/path name**, not by the imported binding names. Specifier length (short `Button` before `Typography`) is **not** used: it fights package-name order and typical React hook order.
+
+| Group              | What                                                                                                           |
+| ------------------ | -------------------------------------------------------------------------------------------------------------- |
+| 1 External         | `react`, then `react-dom`, then `react-router`, then every other package alphabetically (`@mui/*`, `node:`, …) |
+| 2 Internal         | Parent paths (`../../` before `../`)                                                                           |
+| 3 Current folder   | `./` alphabetically                                                                                            |
+| 4 Types (external) | `import type` from packages; `react` first, then alphabetical                                                  |
+| 5 Types (internal) | `import type` from `.` / `../` alphabetically                                                                  |
+| 6 Styles           | `*.css` / `*.scss`                                                                                             |
+| 7 Other            | Remaining side-effect imports                                                                                  |
+
+Type imports are **separate statements** (`fixStyle: 'separate-type-imports'`), not `import { type Foo }`.
 
 ```ts
-// Bad
-import { theme } from './theme';
-import { Button } from '@mui/material';
-import { useState } from 'react';
-import './index.css';
-
 // Good
-import './index.css';
-
-import { useState } from 'react';
-
+import { StrictMode } from 'react';
+import { createRoot } from 'react-dom/client';
 import { Button } from '@mui/material';
 
-import { theme } from './theme';
+import { applyMuiXLicense } from '../license';
+
+import App from './App.tsx';
+
+import type { ButtonProps } from '@mui/material';
+
+import './index.css';
 ```
 
 ### `simple-import-sort/exports` — **error** (off in `src/exports/**`)
@@ -189,9 +200,9 @@ export function Icon() {}
 export default App;
 ```
 
-### `padding-line-between-statements` — **error**
+### `@stylistic/padding-line-between-statements` — **error**
 
-Blank line after the import block, between function declarations, and before `return`.
+Blank line after the import block, between functions, around `type` / `interface` aliases, around multiline `const` (components), and before `return`. Comments stay glued to the next statement (no extra gap between a JSDoc and the declaration). Consecutive `export` lines may stay adjacent (barrels). Package entry files use a looser variant.
 
 ```ts
 // Bad
@@ -213,16 +224,21 @@ function a() {
 function b() {
   return 2;
 }
+
+/** Stays next to the declaration */
+export function ChangelogViewer() {}
 ```
 
-### `@typescript-eslint/consistent-type-imports` — **error** (`inline-type-imports`)
+### `@typescript-eslint/consistent-type-imports` — **error** (`separate-type-imports`)
 
 ```ts
 // Bad
-import { ButtonProps } from '@mui/material';
+import { Button, type ButtonProps } from '@mui/material';
 
 // Good
-import { Button, type ButtonProps } from '@mui/material';
+import { Button } from '@mui/material';
+
+import type { ButtonProps } from '@mui/material';
 ```
 
 ### `@typescript-eslint/consistent-type-definitions` — **error** (`type`)
@@ -626,12 +642,17 @@ docs: document lint and TypeScript rules
 
 On `npm install`, `prepare` runs `husky`.
 
-| Hook                | Command                      | Scope                 |
-| ------------------- | ---------------------------- | --------------------- |
-| `.husky/pre-commit` | `npx lint-staged`            | **Staged files only** |
-| `.husky/commit-msg` | `npx commitlint --edit "$1"` | Commit message        |
+| Hook                | Command                           | Scope                 |
+| ------------------- | --------------------------------- | --------------------- |
+| `.husky/pre-commit` | `npm exec lint-staged`            | **Staged files only** |
+| `.husky/commit-msg` | `npm exec commitlint --edit "$1"` | Commit message        |
 
-lint-staged:
+lint-staged ([lint-staged.config.js](../lint-staged.config.js)) keeps the same globs as before, and **skips**:
+
+- `.storybook/public/**`
+- `.storybook/test.html`
+
+Everything else under `.storybook` (for example `main.ts`, `preview.tsx`) still runs. Those paths are also in ESLint `ignores` and `.prettierignore`.
 
 - `*.{ts,tsx,js,jsx,mjs,cjs}` → `eslint --fix --max-warnings=0`
 - `*.{json,md,mdx,css,yml,yaml,html}` → `prettier --write`

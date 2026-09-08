@@ -4,3 +4,5 @@ dist-app
 storybook-static
 coverage
 package-lock.json
+.storybook/public
+.storybook/test.html

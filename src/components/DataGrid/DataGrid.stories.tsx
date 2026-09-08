@@ -1,8 +1,7 @@
-import type { GridColDef } from '@mui/x-data-grid-premium';
-
-import type { Meta, StoryObj } from '@storybook/react-vite';
-
 import { DataGrid } from './DataGrid';
+
+import type { GridColDef } from '@mui/x-data-grid-premium';
+import type { Meta, StoryObj } from '@storybook/react-vite';
 
 const columns: GridColDef[] = [
   { field: 'id', headerName: 'ID', width: 80 },
@@ -27,6 +26,7 @@ const meta = {
 } satisfies Meta<typeof DataGrid>;
 
 export default meta;
+
 type Story = StoryObj<typeof meta>;
 
 export const Basic: Story = {
