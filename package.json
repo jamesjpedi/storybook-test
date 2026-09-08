@@ -1,31 +1,173 @@
 {
-  "name": "bhhc-storybook",
-  "private": true,
+  "name": "bhhc-design-system",
+  "private": false,
   "version": "0.0.0",
   "type": "module",
+  "description": "BHHC design system — MUI Material, Core, and X replacement with license signing included.",
+  "main": "./dist/exports/material.js",
+  "module": "./dist/exports/material.js",
+  "types": "./dist/exports/material.d.ts",
+  "files": [
+    "dist"
+  ],
+  "sideEffects": [
+    "./dist/**/*.js"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/exports/material.d.ts",
+      "import": "./dist/exports/material.js"
+    },
+    "./material": {
+      "types": "./dist/exports/material.d.ts",
+      "import": "./dist/exports/material.js"
+    },
+    "./icons-material": {
+      "types": "./dist/exports/icons-material.d.ts",
+      "import": "./dist/exports/icons-material.js"
+    },
+    "./system": {
+      "types": "./dist/exports/system.d.ts",
+      "import": "./dist/exports/system.js"
+    },
+    "./utils": {
+      "types": "./dist/exports/utils.d.ts",
+      "import": "./dist/exports/utils.js"
+    },
+    "./lab": {
+      "types": "./dist/exports/lab.d.ts",
+      "import": "./dist/exports/lab.js"
+    },
+    "./styled-engine": {
+      "types": "./dist/exports/styled-engine.d.ts",
+      "import": "./dist/exports/styled-engine.js"
+    },
+    "./base": {
+      "types": "./dist/exports/base.d.ts",
+      "import": "./dist/exports/base.js"
+    },
+    "./base-ui": {
+      "types": "./dist/exports/base-ui.d.ts",
+      "import": "./dist/exports/base-ui.js"
+    },
+    "./x-data-grid": {
+      "types": "./dist/exports/x-data-grid.d.ts",
+      "import": "./dist/exports/x-data-grid.js"
+    },
+    "./x-data-grid-pro": {
+      "types": "./dist/exports/x-data-grid-pro.d.ts",
+      "import": "./dist/exports/x-data-grid-pro.js"
+    },
+    "./x-data-grid-premium": {
+      "types": "./dist/exports/x-data-grid-premium.d.ts",
+      "import": "./dist/exports/x-data-grid-premium.js"
+    },
+    "./x-date-pickers": {
+      "types": "./dist/exports/x-date-pickers.d.ts",
+      "import": "./dist/exports/x-date-pickers.js"
+    },
+    "./x-date-pickers-pro": {
+      "types": "./dist/exports/x-date-pickers-pro.d.ts",
+      "import": "./dist/exports/x-date-pickers-pro.js"
+    },
+    "./x-charts": {
+      "types": "./dist/exports/x-charts.d.ts",
+      "import": "./dist/exports/x-charts.js"
+    },
+    "./x-charts-pro": {
+      "types": "./dist/exports/x-charts-pro.d.ts",
+      "import": "./dist/exports/x-charts-pro.js"
+    },
+    "./x-charts-premium": {
+      "types": "./dist/exports/x-charts-premium.d.ts",
+      "import": "./dist/exports/x-charts-premium.js"
+    },
+    "./x-tree-view": {
+      "types": "./dist/exports/x-tree-view.d.ts",
+      "import": "./dist/exports/x-tree-view.js"
+    },
+    "./x-tree-view-pro": {
+      "types": "./dist/exports/x-tree-view-pro.d.ts",
+      "import": "./dist/exports/x-tree-view-pro.js"
+    },
+    "./x-scheduler": {
+      "types": "./dist/exports/x-scheduler.d.ts",
+      "import": "./dist/exports/x-scheduler.js"
+    },
+    "./x-scheduler-premium": {
+      "types": "./dist/exports/x-scheduler-premium.d.ts",
+      "import": "./dist/exports/x-scheduler-premium.js"
+    },
+    "./x-license": {
+      "types": "./dist/exports/x-license.d.ts",
+      "import": "./dist/exports/x-license.js"
+    },
+    "./package.json": "./package.json"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:lib": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "prepublishOnly": "npm run build:lib",
     "lint": "oxlint",
     "preview": "vite preview",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
-  "dependencies": {
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8",
-    "react-markdown": "^10.1.0"
+  "peerDependencies": {
+    "@types/react": "^18.0.0 || ^19.0.0",
+    "@types/react-dom": "^18.0.0 || ^19.0.0",
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@types/react": {
+      "optional": true
+    },
+    "@types/react-dom": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@storybook/addon-docs": "^10.5.10",
     "@storybook/react-vite": "^10.5.10",
     "@types/node": "^24.13.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-react": "^6.1.0",
     "oxlint": "^1.79.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-markdown": "^10.1.0",
     "storybook": "^10.5.10",
     "typescript": "~6.0.2",
     "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.8.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/base": "^5.0.0-beta.70",
+    "@mui/icons-material": "^9.4.0",
+    "@mui/lab": "^9.0.0-beta.9",
+    "@mui/material": "^9.4.0",
+    "@mui/private-theming": "^9.4.0",
+    "@mui/styled-engine": "^9.4.0",
+    "@mui/system": "^9.4.0",
+    "@mui/types": "^9.4.0",
+    "@mui/utils": "^9.4.0",
+    "@mui/x-charts": "^9.13.0",
+    "@mui/x-charts-premium": "^9.13.0",
+    "@mui/x-charts-pro": "^9.13.0",
+    "@mui/x-data-grid": "^9.13.0",
+    "@mui/x-data-grid-premium": "^9.13.0",
+    "@mui/x-data-grid-pro": "^9.13.0",
+    "@mui/x-date-pickers": "^9.13.0",
+    "@mui/x-date-pickers-pro": "^9.13.0",
+    "@mui/x-license": "^9.13.0",
+    "@mui/x-scheduler": "^9.0.0-beta.11",
+    "@mui/x-scheduler-premium": "^9.0.0-beta.11",
+    "@mui/x-tree-view": "^9.13.0",
+    "@mui/x-tree-view-pro": "^9.13.0"
   }
 }

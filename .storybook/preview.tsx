@@ -1,6 +1,20 @@
+import { CssBaseline, ThemeProvider } from '@mui/material';
 import type { Preview } from '@storybook/react-vite';
 
+import { applyMuiXLicense } from '../src/license';
+import { theme } from '../src/theme';
+
+applyMuiXLicense();
+
 const preview: Preview = {
+  decorators: [
+    (Story) => (
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Story />
+      </ThemeProvider>
+    ),
+  ],
   parameters: {
     controls: {
       matchers: {
@@ -10,7 +24,7 @@ const preview: Preview = {
     },
     options: {
       storySort: {
-        order: ['How to Use', 'Components', 'Changelog'],
+        order: ['Getting started', 'How to Use', 'Components', 'Changelog'],
       },
     },
   },

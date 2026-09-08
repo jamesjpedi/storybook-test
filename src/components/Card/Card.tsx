@@ -1,21 +1,9 @@
-import './Card.css';
+import { Card as MuiCard, type CardProps as MuiCardProps } from '@mui/material';
+import { forwardRef } from 'react';
 
-export interface CardProps {
-  /** Heading shown at the top of the card */
-  title: string;
-  /** Supporting copy */
-  description: string;
-  /** Optional eyebrow label above the title */
-  eyebrow?: string;
-}
+export type CardProps = MuiCardProps;
 
-/** Content card for grouping a title and short description */
-export function Card({ title, description, eyebrow }: CardProps) {
-  return (
-    <article className="ui-card">
-      {eyebrow ? <p className="ui-card__eyebrow">{eyebrow}</p> : null}
-      <h3 className="ui-card__title">{title}</h3>
-      <p className="ui-card__description">{description}</p>
-    </article>
-  );
-}
+/** BHHC Card — MUI Card with design-system defaults from `theme`. */
+export const Card = forwardRef<HTMLDivElement, CardProps>(function Card(props, ref) {
+  return <MuiCard ref={ref} {...props} />;
+});

@@ -1,37 +1,63 @@
+import { CardContent, CssBaseline, ThemeProvider, Typography } from '@mui/material';
+
 import { Button, Card } from './components';
 import './index.css';
+import { theme } from './theme';
 
 function App() {
   return (
-    <main className="app">
-      <header className="app__header">
-        <p className="app__eyebrow">Component library</p>
-        <h1>BHHC Storybook</h1>
-        <p>
-          Sample React + TypeScript components. Open Storybook for docs,
-          stories, and the versioned changelog.
-        </p>
-        <Button
-          label="Open Storybook"
-          onClick={() => {
-            window.open('http://localhost:6006', '_blank');
-          }}
-        />
-      </header>
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <main className="app">
+        <header className="app__header">
+          <p className="app__eyebrow">Component library</p>
+          <h1>BHHC design system</h1>
+          <p>
+            MUI Material, Core, and X replacement package. Open Storybook for docs,
+            stories, and the versioned changelog.
+          </p>
+          <Button
+            variant="contained"
+            onClick={() => {
+              window.open('http://localhost:6006', '_blank');
+            }}
+          >
+            Open Storybook
+          </Button>
+        </header>
 
-      <section className="app__grid" aria-label="Sample components">
-        <Card
-          eyebrow="Components"
-          title="Button"
-          description="Primary and secondary actions with small, medium, and large sizes."
-        />
-        <Card
-          eyebrow="Components"
-          title="Card"
-          description="Group a title and short description. Add an eyebrow for status or category."
-        />
-      </section>
-    </main>
+        <section className="app__grid" aria-label="Sample components">
+          <Card sx={{ maxWidth: 320 }}>
+            <CardContent>
+              <Typography variant="overline" color="primary">
+                Components
+              </Typography>
+              <Typography gutterBottom variant="h6" component="h3">
+                Button
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                MUI Button with BHHC theme defaults for contained, outlined, and text
+                variants.
+              </Typography>
+            </CardContent>
+          </Card>
+          <Card sx={{ maxWidth: 320 }}>
+            <CardContent>
+              <Typography variant="overline" color="primary">
+                Components
+              </Typography>
+              <Typography gutterBottom variant="h6" component="h3">
+                Card
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                MUI Card with BHHC radius and border. Compose with CardContent and
+                Typography.
+              </Typography>
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </ThemeProvider>
   );
 }
 
