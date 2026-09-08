@@ -1,5 +1,9 @@
 # BHHC design system — Azure DevOps pipeline
 #
+# Quality gates (every PR and main/master): Prettier, ESLint, TypeScript, then
+# library + Storybook builds. Pull requests also run Commitlint on the commit range.
+# Husky is skipped in CI (HUSKY=0); local commits still use lint-staged.
+#
 # Required pipeline (secret) variable:
 #   MUI_X_LICENSE_KEY  — MUI X Premium license; inlined into the published package
 #
@@ -39,6 +43,11 @@ stages:
       - job: Ci
         displayName: CI
         steps:
+          - checkout: self
+            fetchDepth: 0
+            persistCredentials: true
+            displayName: Checkout (full history for Commitlint)
+
           - task: NodeTool@0
             displayName: Use Node $(nodeVersion)
             inputs:
@@ -54,9 +63,23 @@ stages:
 
           - script: npm ci --cache $(Pipeline.Workspace)/.npm --prefer-offline
             displayName: npm ci
+            env:
+              HUSKY: '0'
+
+          - bash: |
+              set -euo pipefail
+              TARGET_REF="${SYSTEM_PULLREQUEST_TARGETBRANCH}"
+              TARGET="${TARGET_REF#refs/heads/}"
+              git fetch --quiet origin "$TARGET"
+              npx commitlint --from "origin/${TARGET}" --to HEAD --verbose
+            displayName: Commitlint (PR commits)
+            condition: eq(variables['Build.Reason'], 'PullRequest')
+
+          - script: npm run format:check
+            displayName: Prettier check
 
           - script: npm run lint
-            displayName: Lint
+            displayName: ESLint (includes Prettier on TS/TSX)
 
           - script: npm run typecheck
             displayName: Typecheck

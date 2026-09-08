@@ -15,11 +15,11 @@ export const theme = createTheme({
     borderRadius: 8,
   },
   components: {
-        MuiButton: {
-          defaultProps: {
-            disableElevation: true,
-            variant: 'contained',
-          },
+    MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+        variant: 'contained',
+      },
       styleOverrides: {
         root: {
           fontWeight: 600,

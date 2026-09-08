@@ -115,7 +115,7 @@ external: (id) =>
   id.startsWith('react-dom/') ||
   id.startsWith('@mui/') ||
   id.startsWith('@emotion/') ||
-  id.startsWith('@base-ui/')
+  id.startsWith('@base-ui/');
 ```
 
 - `build.lib.entry` is a **multi-entry object** keyed by subpath (`index` / `material`, `x-data-grid-premium`, `base-ui`, …).

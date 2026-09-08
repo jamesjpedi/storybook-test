@@ -30,6 +30,16 @@ const libEntries = {
   'x-license': resolve(root, 'src/exports/x-license.ts'),
 } as const;
 
+function firstNonEmpty(...values: (string | undefined)[]): string {
+  for (const value of values) {
+    if (value !== undefined && value.length > 0) {
+      return value;
+    }
+  }
+
+  return '';
+}
+
 function isExternal(id: string): boolean {
   return (
     id === 'react' ||
@@ -45,7 +55,7 @@ function isExternal(id: string): boolean {
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, root, '');
-  const licenseKey = process.env.MUI_X_LICENSE_KEY || env.MUI_X_LICENSE_KEY;
+  const licenseKey = firstNonEmpty(process.env.MUI_X_LICENSE_KEY, env.MUI_X_LICENSE_KEY);
 
   if (!licenseKey) {
     throw new Error(

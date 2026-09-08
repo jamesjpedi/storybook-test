@@ -26,5 +26,21 @@ Make below changes in the code:
     etc..
 17. Should include "@base-ui/react"
 18. Make sure all mui's public/core/x packages are in dependencies and vite config to handle it correctly.
+19. Add azure-devops pipeline config for the same.
 
 ---
+
+## typescript + ESLint + Prettier + Commitlint + husky + gitignore
+
+Create and configure typescript + ESLint + Prettier + Commitlint + husky + gitignore + editorconfig for the app based on points below
+
+1. Should follow all react + JS latest standards
+2. Code should be easily readable for humans
+3. Overview of code should be beautiful, meaningful, aligned for using industry standards rules.
+4. Import order, line breaks, function-function empty line etc should be configured gracefully for a good codebase.
+5. All should work seamlessly with each other, only enforce for changed documents / code when committing.
+6. prettier should work with eslint.
+7. Should be strictly typed as per latest standards.
+8. Rule should be enforcing developer to maintain all standards strictly.
+9. Create a md file for all the rules applied / disabled / warning with example for understanding.
+10. Add / update azure-devops pipeline config for the same.

@@ -6,6 +6,7 @@ function resolveLicenseKey(): string {
   }
 
   const envKey = import.meta.env.MUI_X_LICENSE_KEY;
+
   return typeof envKey === 'string' ? envKey : '';
 }
 

@@ -1,4 +1,5 @@
 import { CssBaseline, ThemeProvider } from '@mui/material';
+
 import type { Preview } from '@storybook/react-vite';
 
 import { applyMuiXLicense } from '../src/license';

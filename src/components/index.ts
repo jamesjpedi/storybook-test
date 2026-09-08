@@ -1,6 +1,6 @@
-export { Button } from './Button/Button';
 export type { ButtonProps } from './Button/Button';
-export { Card } from './Card/Card';
+export { Button } from './Button/Button';
 export type { CardProps } from './Card/Card';
-export { DataGrid } from './DataGrid/DataGrid';
+export { Card } from './Card/Card';
 export type { DataGridProps } from './DataGrid/DataGrid';
+export { DataGrid } from './DataGrid/DataGrid';

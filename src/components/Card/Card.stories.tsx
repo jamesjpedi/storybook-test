@@ -1,4 +1,5 @@
 import { CardContent, Typography } from '@mui/material';
+
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { Card } from './Card';

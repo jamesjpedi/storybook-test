@@ -1,7 +1,8 @@
+import './index.css';
+
 import { CardContent, CssBaseline, ThemeProvider, Typography } from '@mui/material';
 
 import { Button, Card } from './components';
-import './index.css';
 import { theme } from './theme';
 
 function App() {
@@ -13,8 +14,8 @@ function App() {
           <p className="app__eyebrow">Component library</p>
           <h1>BHHC design system</h1>
           <p>
-            MUI Material, Core, and X replacement package. Open Storybook for docs,
-            stories, and the versioned changelog.
+            MUI Material, Core, and X replacement package. Open Storybook for docs, stories, and the
+            versioned changelog.
           </p>
           <Button
             variant="contained"
@@ -36,8 +37,7 @@ function App() {
                 Button
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                MUI Button with BHHC theme defaults for contained, outlined, and text
-                variants.
+                MUI Button with BHHC theme defaults for contained, outlined, and text variants.
               </Typography>
             </CardContent>
           </Card>
@@ -50,8 +50,7 @@ function App() {
                 Card
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                MUI Card with BHHC radius and border. Compose with CardContent and
-                Typography.
+                MUI Card with BHHC radius and border. Compose with CardContent and Typography.
               </Typography>
             </CardContent>
           </Card>

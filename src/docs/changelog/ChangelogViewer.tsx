@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import Markdown from 'react-markdown';
-
 import './ChangelogViewer.css';
+
+import { useEffect, useState } from 'react';
+
+import Markdown from 'react-markdown';
 
 const changelogLoaders = import.meta.glob('./versions/*.md', {
   query: '?raw',
@@ -10,17 +11,16 @@ const changelogLoaders = import.meta.glob('./versions/*.md', {
 
 function versionFromPath(path: string): string {
   const fileName = path.split('/').pop() ?? path;
+
   return fileName.replace(/\.md$/i, '');
 }
 
-const versions = Object.keys(changelogLoaders)
-  .map((path) => ({
+const versions = Object.entries(changelogLoaders)
+  .map(([path, load]) => ({
     id: versionFromPath(path),
-    load: changelogLoaders[path],
+    load,
   }))
-  .sort((a, b) =>
-    b.id.localeCompare(a.id, undefined, { numeric: true, sensitivity: 'base' }),
-  );
+  .sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true, sensitivity: 'base' }));
 
 export function ChangelogViewer() {
   const [selected, setSelected] = useState(versions[0]?.id ?? '');

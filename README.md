@@ -10,16 +10,29 @@ npm run storybook      # Component explorer at http://localhost:6006
 npm run dev            # Vite demo app
 npm run build          # Vite demo app to dist-app/
 npm run build:lib      # Library build for npm (requires MUI_X_LICENSE_KEY)
-npm run typecheck
-npm run lint
 npm run build-storybook
+npm run typecheck      # TypeScript project build (no emit)
+npm run lint           # ESLint + Prettier on TS/TSX (whole tree)
+npm run lint:fix       # Autofix lint and formatting
+npm run format         # Prettier write on all supported files
+npm run format:check  # Prettier check (CI)
 ```
 
 Copy `.env.example` to `.env` and set `MUI_X_LICENSE_KEY` before `build:lib`.
 
+Code style, TypeScript, ESLint, Prettier, and commit hooks are documented in [dev-docs/CODE_STANDARDS.md](dev-docs/CODE_STANDARDS.md). Commits only lint **staged** files; Azure DevOps checks the whole tree.
+
 ## Azure DevOps
 
-[azure-pipelines.yml](azure-pipelines.yml) runs lint, typecheck, `build:lib` (MUI X signing), and Storybook on PRs and `main`. It publishes `bhhc-design-system` to Azure Artifacts when you push a `v*` tag (for example `v0.1.0`).
+[azure-pipelines.yml](azure-pipelines.yml) runs on PRs and `main`:
+
+1. **Commitlint** (pull requests only) — Conventional Commits on the PR range
+2. **Prettier** (`format:check`) and **ESLint** (`lint`, including Prettier on TS/TSX)
+3. **Typecheck**
+4. **`build:lib`** (MUI X signing) and Storybook
+5. Publishes `bhhc-design-system` to Azure Artifacts when you push a `v*` tag (for example `v0.1.0`)
+
+Setup:
 
 1. Create pipeline variable **`MUI_X_LICENSE_KEY`** (secret). Do not commit the key.
 2. Create an Azure Artifacts npm feed. Set pipeline variable **`npmFeed`** to that feed name (default in YAML: `bhhc-design-system`).

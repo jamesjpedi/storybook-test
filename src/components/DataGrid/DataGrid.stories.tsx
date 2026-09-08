@@ -1,4 +1,5 @@
 import type { GridColDef } from '@mui/x-data-grid-premium';
+
 import type { Meta, StoryObj } from '@storybook/react-vite';
 
 import { DataGrid } from './DataGrid';
