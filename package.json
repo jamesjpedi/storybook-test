@@ -106,8 +106,14 @@
   },
   "scripts": {
     "dev": "vite",
+    "check": "npm run format:check && npm run lint && npm run typecheck",
+    "check:changed": "node scripts/check-changed.mjs",
+    "prebuild": "npm run check:changed",
     "build": "tsc -b && vite build",
+    "prebuild:lib": "npm run check:changed",
     "build:lib": "vite build --config vite.lib.config.ts && tsc -p tsconfig.lib.json",
+    "prebuild-storybook": "npm run check:changed",
+    "build-storybook": "storybook build",
     "prepublishOnly": "npm run build:lib",
     "lint": "eslint . --max-warnings=0",
     "lint:fix": "eslint . --fix --max-warnings=0",
@@ -116,8 +122,7 @@
     "typecheck": "tsc -b",
     "prepare": "husky",
     "preview": "vite preview",
-    "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "storybook": "storybook dev -p 6006"
   },
   "peerDependencies": {
     "@types/react": "^18.0.0 || ^19.0.0",

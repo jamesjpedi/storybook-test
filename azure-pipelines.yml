@@ -1,8 +1,7 @@
 # BHHC design system — Azure DevOps pipeline
 #
-# Quality gates (every PR and main/master): Prettier, ESLint, TypeScript, then
-# library + Storybook builds. Pull requests also run Commitlint on the commit range.
-# Husky is skipped in CI (HUSKY=0); local commits still use lint-staged.
+# Quality gates run as npm prebuild hooks on changed files only (no --fix).
+# `npm run build:lib` / `build-storybook` fail if ESLint, Prettier, or typecheck fail.
 #
 # Required pipeline (secret) variable:
 #   MUI_X_LICENSE_KEY  — MUI X Premium license; inlined into the published package
@@ -38,7 +37,7 @@ variables:
 
 stages:
   - stage: Build
-    displayName: Lint, typecheck, and build
+    displayName: Check and build
     jobs:
       - job: Ci
         displayName: CI
@@ -46,7 +45,7 @@ stages:
           - checkout: self
             fetchDepth: 0
             persistCredentials: true
-            displayName: Checkout (full history for Commitlint)
+            displayName: Checkout (full history for Commitlint and check:changed)
 
           - task: NodeTool@0
             displayName: Use Node $(nodeVersion)
@@ -75,22 +74,13 @@ stages:
             displayName: Commitlint (PR commits)
             condition: eq(variables['Build.Reason'], 'PullRequest')
 
-          - script: npm run format:check
-            displayName: Prettier check
-
-          - script: npm run lint
-            displayName: ESLint (includes Prettier on TS/TSX)
-
-          - script: npm run typecheck
-            displayName: Typecheck
-
           - script: npm run build:lib
-            displayName: Build library (MUI X signing)
+            displayName: Check (fail-only) and build library
             env:
               MUI_X_LICENSE_KEY: $(MUI_X_LICENSE_KEY)
 
           - script: npm run build-storybook
-            displayName: Build Storybook
+            displayName: Check (fail-only) and build Storybook
 
           - script: |
               set -euo pipefail

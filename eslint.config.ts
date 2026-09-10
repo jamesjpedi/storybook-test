@@ -97,7 +97,12 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          allowDefaultProject: ['.storybook/*.ts', '.storybook/*.tsx', 'prettier.config.js'],
+          allowDefaultProject: [
+            '.storybook/*.ts',
+            '.storybook/*.tsx',
+            'prettier.config.js',
+            'scripts/*.mjs',
+          ],
         },
         tsconfigRootDir: import.meta.dirname,
       },
@@ -112,7 +117,7 @@ export default tseslint.config(
   },
   {
     name: 'bhhc/node-globals',
-    files: ['*.config.ts', 'vite.config.ts', 'vite.lib.config.ts'],
+    files: ['*.config.ts', 'vite.config.ts', 'vite.lib.config.ts', 'scripts/**/*.{js,mjs,cjs}'],
     languageOptions: {
       globals: globals.node,
     },

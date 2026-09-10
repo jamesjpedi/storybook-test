@@ -2,7 +2,7 @@
 
 This repo uses **TypeScript**, **ESLint 9** (flat config), **Prettier**, **EditorConfig**, **Commitlint**, and **Husky + lint-staged**. They are wired so they do not fight each other: Prettier owns whitespace and quotes; ESLint owns correctness, React/TS rules, import order, and blank lines between statements.
 
-`npm run lint` / `npm run typecheck` check the **whole tree**. Git hooks only run on **staged** files (and the commit message).
+`npm run lint` / `npm run typecheck` / `npm run check` cover the **whole tree**. Pre-build (`check:changed`) only covers **files changed in the current PR or vs `main`**. Git hooks only run on **staged** files (and the commit message).
 
 ```text
 staged files  -->  husky pre-commit  -->  lint-staged
@@ -17,13 +17,15 @@ ESLint is pinned to **9.x** because `eslint-plugin-react` and `eslint-plugin-jsx
 
 ## How to run
 
-| Script                 | What it does                                |
-| ---------------------- | ------------------------------------------- |
-| `npm run typecheck`    | `tsc -b` across app and node projects       |
-| `npm run lint`         | `eslint . --max-warnings=0` (warnings fail) |
-| `npm run lint:fix`     | Same, with `--fix`                          |
-| `npm run format`       | Prettier write for the whole tree           |
-| `npm run format:check` | Prettier check only                         |
+| Script                  | What it does                                                             |
+| ----------------------- | ------------------------------------------------------------------------ |
+| `npm run check`         | `format:check` + `lint` + `typecheck` on the **whole tree** (no `--fix`) |
+| `npm run check:changed` | Same tools, only files changed vs the PR target or `main` (no `--fix`)   |
+| `npm run typecheck`     | `tsc -b` across app and node projects                                    |
+| `npm run lint`          | `eslint . --max-warnings=0` (warnings fail)                              |
+| `npm run lint:fix`      | Same, with `--fix`                                                       |
+| `npm run format`        | Prettier write for the whole tree                                        |
+| `npm run format:check`  | Prettier check only                                                      |
 
 Editor: format on save via Prettier; `source.fixAll.eslint` on save. Recommended extensions are in [`.vscode/extensions.json`](../.vscode/extensions.json).
 
@@ -657,17 +659,16 @@ Everything else under `.storybook` (for example `main.ts`, `preview.tsx`) still 
 - `*.{ts,tsx,js,jsx,mjs,cjs}` → `eslint --fix --max-warnings=0`
 - `*.{json,md,mdx,css,yml,yaml,html}` → `prettier --write`
 
-Unstaged files are not rewritten. To check everything locally: `npm run format:check`, `npm run lint`, and `npm run typecheck`.
+Unstaged files are not rewritten. `npm run check` still scans the whole tree (no writes). `npm run build`, `build:lib`, and `build-storybook` run `check:changed` first: ESLint and Prettier **check only** (no `--fix`) on files changed in the current PR or vs `main`/`master`. Typecheck runs if any TypeScript files in that diff changed. `.storybook/public/**` and `.storybook/test.html` are skipped.
 
 ## Azure DevOps CI
 
-[azure-pipelines.yml](../azure-pipelines.yml) enforces the same standards on the **whole tree** (hooks only cover staged files):
+[azure-pipelines.yml](../azure-pipelines.yml) uses the same fail-only, changed-file checks via `prebuild:lib` / `prebuild-storybook`:
 
-| Step                                 | When          | Command                                       |
-| ------------------------------------ | ------------- | --------------------------------------------- |
-| Commitlint                           | Pull requests | `commitlint --from origin/<target> --to HEAD` |
-| Prettier                             | Every CI run  | `npm run format:check`                        |
-| ESLint (includes Prettier on TS/TSX) | Every CI run  | `npm run lint` (`--max-warnings=0`)           |
-| Typecheck                            | Every CI run  | `npm run typecheck`                           |
+| Step                             | When          | Command                                                 |
+| -------------------------------- | ------------- | ------------------------------------------------------- |
+| Commitlint                       | Pull requests | `commitlint --from origin/<target> --to HEAD`           |
+| Check (fail-only, changed files) | Every CI run  | `prebuild:lib` / `prebuild-storybook` → `check:changed` |
+| Library / Storybook build        | Every CI run  | `build:lib`, `build-storybook`                          |
 
 `npm ci` sets `HUSKY=0` so install does not install git hooks on the agent. Merge commits are ignored by Commitlint’s default ignores.
