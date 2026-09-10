@@ -11,29 +11,47 @@ import { configs as storybookConfigs } from 'eslint-plugin-storybook';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+import { muiComponentImportsRule } from './eslint-rules/mui-component-imports.ts';
+import { reactImportsRule } from './eslint-rules/react-imports.ts';
+
 const notTypeImport = '[^\\u0000]*$';
 
 const importSortGroups = [
-  // 1. External values: React, react-dom, react-router, then other packages by name
-  [`^react$`, `^react/.+`, `^react-dom(/.*)?$`, `^react-router(/.*)?$`, `^@?\\w${notTypeImport}`],
-  // 2. Internal (parent) — farther up the tree first (`../../` before `../`)
-  [`^\\.\\.${notTypeImport}`],
-  // 3. Current folder — alphabetically by path
-  [`^\\./${notTypeImport}`],
-  // 4. External type imports — React first, then by package name
+  // 1. External values: React, then MUI (material → X → material/* → icons → rest), then other packages
+  [
+    `^react$`,
+    `^react/.+`,
+    `^react-dom(/.*)?$`,
+    `^react-router(/.*)?$`,
+    `^@mui/material$`,
+    `^@mui/x-`,
+    `^@mui/material/`,
+    `^@mui/icons-material`,
+    `^@mui/`,
+    `^@emotion/`,
+    `^@base-ui/`,
+    `^@?\\w${notTypeImport}`,
+  ],
+  // 2. Internal values — parent paths first, then current folder
+  [`^\\.\\.${notTypeImport}`, `^\\./${notTypeImport}`],
+  // 3. Type imports — same package order as values, then internal types
   [
     '^react\\u0000$',
     '^react/.*\\u0000$',
     '^react-dom.*\\u0000$',
     '^react-router.*\\u0000$',
+    '^@mui/material\\u0000$',
+    '^@mui/x-.*\\u0000$',
+    '^@mui/material/.*\\u0000$',
+    '^@mui/icons-material.*\\u0000$',
+    '^@mui/.*\\u0000$',
+    '^@emotion/.*\\u0000$',
+    '^@base-ui/.*\\u0000$',
     '^@?\\w.*\\u0000$',
+    '^[.].*\\u0000$',
   ],
-  // 5. Internal type imports
-  ['^[.].*\\u0000$'],
-  // 6. Style imports
-  ['^.+\\.s?css$'],
-  // 7. Other side-effect imports
-  ['^\\u0000'],
+  // 4. Other side-effect imports, then styles at the bottom
+  ['^\\u0000', '^.+\\.s?css$'],
 ];
 
 const paddingLineBetweenStatements: [
@@ -117,7 +135,13 @@ export default tseslint.config(
   },
   {
     name: 'bhhc/node-globals',
-    files: ['*.config.ts', 'vite.config.ts', 'vite.lib.config.ts', 'scripts/**/*.{js,mjs,cjs}'],
+    files: [
+      '*.config.ts',
+      'vite.config.ts',
+      'vite.lib.config.ts',
+      'eslint-rules/**/*.ts',
+      'scripts/**/*.{js,mjs,cjs}',
+    ],
     languageOptions: {
       globals: globals.node,
     },
@@ -139,6 +163,8 @@ export default tseslint.config(
     rules: {
       'react/prop-types': 'off',
       'react-hooks/exhaustive-deps': 'error',
+      'react/react-in-jsx-scope': 'error',
+      'react/jsx-uses-react': 'error',
     },
   },
   jsxA11y.flatConfigs.recommended,
@@ -149,9 +175,17 @@ export default tseslint.config(
       '@stylistic': stylistic,
       'simple-import-sort': simpleImportSort,
       'import-x': importX,
+      bhhc: {
+        rules: {
+          'mui-component-imports': muiComponentImportsRule,
+          'react-imports': reactImportsRule,
+        },
+      },
     },
     rules: {
       'simple-import-sort/imports': ['error', { groups: importSortGroups }],
+      'bhhc/mui-component-imports': 'error',
+      'bhhc/react-imports': 'error',
       'simple-import-sort/exports': 'error',
       'import-x/first': 'error',
       'import-x/newline-after-import': 'error',
@@ -223,7 +257,7 @@ export default tseslint.config(
   },
   {
     name: 'bhhc/eslint-config-file',
-    files: ['eslint.config.ts'],
+    files: ['eslint.config.ts', 'eslint-rules/**/*.ts'],
     rules: {
       // `tseslint.config()` is deprecated in favor of ESLint's `defineConfig()`,
       // but Storybook's plugin types are not compatible with that helper yet.

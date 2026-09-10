@@ -1,7 +1,7 @@
-import { forwardRef } from 'react';
-import { Button as MuiButton } from '@mui/material';
+import React, { forwardRef } from 'react';
+import MuiButton from '@mui/material/Button';
 
-import type { ButtonProps as MuiButtonProps } from '@mui/material';
+import type { ButtonProps as MuiButtonProps } from '@mui/material/Button';
 
 export type ButtonProps = MuiButtonProps;
 

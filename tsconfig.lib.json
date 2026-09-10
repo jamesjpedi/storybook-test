@@ -10,7 +10,7 @@
     "moduleResolution": "bundler",
     "verbatimModuleSyntax": true,
     "moduleDetection": "force",
-    "jsx": "react-jsx",
+    "jsx": "react",
     "declaration": true,
     "declarationMap": true,
     "emitDeclarationOnly": true,

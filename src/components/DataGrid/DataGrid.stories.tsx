@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { DataGrid } from './DataGrid';
 
 import type { GridColDef } from '@mui/x-data-grid-premium';

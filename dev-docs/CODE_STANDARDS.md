@@ -113,12 +113,14 @@ Resolved from [`eslint.config.ts`](../eslint.config.ts) (see `eslint --print-con
 | `@eslint/js` recommended                                      | Core JS correctness                                                                          |
 | `typescript-eslint` `strictTypeChecked`                       | Strict, type-aware TS rules                                                                  |
 | `typescript-eslint` `stylisticTypeChecked`                    | TS style that is not Prettier’s job                                                          |
-| `eslint-plugin-react` recommended + `jsx-runtime`             | React 17+ JSX transform                                                                      |
+| `eslint-plugin-react` recommended + `jsx-runtime`             | React 17+ JSX transform; this repo turns `react-in-jsx-scope` back **on**                    |
 | `eslint-plugin-react-hooks` `recommended-latest`              | Rules of Hooks + React Compiler-oriented rules                                               |
 | `eslint-plugin-react-refresh` Vite                            | Fast Refresh: files should export components                                                 |
 | `eslint-plugin-jsx-a11y` recommended                          | Accessibility                                                                                |
 | `eslint-plugin-storybook` `flat/recommended`                  | CSF stories                                                                                  |
 | `eslint-plugin-simple-import-sort` + `eslint-plugin-import-x` | Import/export order                                                                          |
+| `bhhc/react-imports` (local)                                  | `import React, { useState } from 'react'` — never `import type` from `react`                 |
+| `bhhc/mui-component-imports` (local)                          | Single MUI component → path default; multiple → named barrel                                 |
 | `@stylistic/eslint-plugin`                                    | Blank lines between functions, types, and exports (not Prettier formatting)                  |
 | `eslint-plugin-prettier/recommended` (**last**)               | Disables formatting rules that clash with Prettier **and** reports Prettier as ESLint errors |
 
@@ -134,31 +136,73 @@ These are set explicitly in `eslint.config.ts` (not only inherited).
 
 Imports are grouped and separated by a blank line. **Within** a group, modules are sorted by **package/path name**, not by the imported binding names. Specifier length (short `Button` before `Typography`) is **not** used: it fights package-name order and typical React hook order.
 
-| Group              | What                                                                                                           |
-| ------------------ | -------------------------------------------------------------------------------------------------------------- |
-| 1 External         | `react`, then `react-dom`, then `react-router`, then every other package alphabetically (`@mui/*`, `node:`, …) |
-| 2 Internal         | Parent paths (`../../` before `../`)                                                                           |
-| 3 Current folder   | `./` alphabetically                                                                                            |
-| 4 Types (external) | `import type` from packages; `react` first, then alphabetical                                                  |
-| 5 Types (internal) | `import type` from `.` / `../` alphabetically                                                                  |
-| 6 Styles           | `*.css` / `*.scss`                                                                                             |
-| 7 Other            | Remaining side-effect imports                                                                                  |
+| Group            | What                                                                                                                                                                                                                                                             |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1 External       | `react`, then `react-dom`, then `react-router`, then MUI (`@mui/material`, `@mui/x-*`, `@mui/material/*` such as `styles` and path components, `@mui/icons-material`, other `@mui/*`), then `@emotion/*` / `@base-ui/*`, then every other package alphabetically |
+| 2 Internal       | Parent paths (`../../` before `../`), then current folder `./`                                                                                                                                                                                                   |
+| 3 Types          | `import type` — same package order as values, then internal types                                                                                                                                                                                                |
+| 4 Other + styles | Remaining side-effect imports, then `*.css` / `*.scss` last                                                                                                                                                                                                      |
 
-Type imports are **separate statements** (`fixStyle: 'separate-type-imports'`), not `import { type Foo }`.
+Type imports are **separate statements** (`fixStyle: 'separate-type-imports'`), not `import { type Foo }`. They stay in one group (no extra blank lines between type imports). React itself is never a type import — see `bhhc/react-imports`.
 
 ```ts
 // Good
-import { StrictMode } from 'react';
+import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { Button } from '@mui/material';
+import { Box, Button } from '@mui/material';
+import { DataGrid } from '@mui/x-data-grid-premium';
+import { createTheme } from '@mui/material/styles';
+import Add from '@mui/icons-material/Add';
 
 import { applyMuiXLicense } from '../license';
-
 import App from './App.tsx';
 
 import type { ButtonProps } from '@mui/material';
+import type { LocalProps } from './App.tsx';
 
 import './index.css';
+```
+
+MUI families stay in **one** external group (no extra blank lines between `@mui/material` and `@mui/x-*`).
+
+### `bhhc/react-imports` — **error**
+
+Do not use `import type` from `'react'`. Always import the default `React` binding as a value, and put named exports on the same line.
+
+```ts
+// Bad
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+
+// Good — values
+import React, { useState } from 'react';
+
+// Good — types only (use `React.ReactNode`, not `import type`)
+import React from 'react';
+```
+
+### `bhhc/mui-component-imports` — **error**
+
+For `@mui/material`, `@mui/icons-material`, and `@mui/lab`:
+
+- **One** component in the file → default import from the component path.
+- **Two or more** components → named imports from the package barrel.
+
+`@mui/material/styles`, `@mui/material/colors`, and barrel-only names such as `ThemeProvider` are not rewritten to `@mui/material/ThemeProvider`.
+
+```ts
+// Bad — one component from the barrel
+import { Button } from '@mui/material';
+
+// Good
+import Button from '@mui/material/Button';
+
+// Bad — several components via paths
+import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+
+// Good
+import { Box, Button } from '@mui/material';
 ```
 
 ### `simple-import-sort/exports` — **error** (off in `src/exports/**`)
@@ -238,9 +282,9 @@ export function ChangelogViewer() {}
 import { Button, type ButtonProps } from '@mui/material';
 
 // Good
-import { Button } from '@mui/material';
+import Button from '@mui/material/Button';
 
-import type { ButtonProps } from '@mui/material';
+import type { ButtonProps } from '@mui/material/Button';
 ```
 
 ### `@typescript-eslint/consistent-type-definitions` — **error** (`type`)
@@ -330,9 +374,23 @@ Types come from TypeScript.
 Button.propTypes = { children: PropTypes.node };
 ```
 
-### `react/react-in-jsx-scope` / `react/jsx-uses-react` — **off**
+### `react/react-in-jsx-scope` / `react/jsx-uses-react` — **error**
 
-React 17+ JSX transform; no `import React from 'react'` for JSX.
+JSX files must `import React from 'react'` (or `import React, { useState } from 'react'`). Typecheck uses `"jsx": "react"` so that default import is in scope; Vite still compiles with the automatic runtime.
+
+```ts
+// Bad
+export function App() {
+  return <Button>Save</Button>;
+}
+
+// Good
+import React from 'react';
+
+export function App() {
+  return <Button>Save</Button>;
+}
+```
 
 ### `react-hooks/exhaustive-deps` — **error** (upgraded from the plugin’s warn)
 
@@ -362,7 +420,7 @@ export function Button() {}
 
 Barrel re-exports under `src/exports/**` are not components; the Fast Refresh rule is off there.
 
-### `@typescript-eslint/no-deprecated` — **off** only in `eslint.config.ts`
+### `@typescript-eslint/no-deprecated` — **off** in `eslint.config.ts` and `eslint-rules/**`
 
 `tseslint.config()` is marked deprecated in favor of ESLint’s `defineConfig()`, but Storybook’s plugin types are not compatible with that helper yet.
 
@@ -376,7 +434,7 @@ Barrel re-exports under `src/exports/**` are not components; the Fast Refresh ru
 | `src/exports/**`                                                         | `react-refresh/only-export-components` off; `simple-import-sort/exports` off |
 | `**/*.d.ts`                                                              | `consistent-type-definitions` off; default export off                        |
 | `**/*.{js,mjs,cjs}`                                                      | `typescript-eslint` type-checked rules disabled                              |
-| `eslint.config.ts`                                                       | `@typescript-eslint/no-deprecated` off                                       |
+| `eslint.config.ts`, `eslint-rules/**`                                    | `@typescript-eslint/no-deprecated` off                                       |
 
 Ignored by ESLint: `node_modules`, `dist`, `dist-app`, `storybook-static`, `coverage`, `package-lock.json`.
 
@@ -554,10 +612,12 @@ const [value, setValue] = useState(0);
 
 ### Other errors
 
-| Rule                                   | Meaning                                             |
-| -------------------------------------- | --------------------------------------------------- |
-| `prettier/prettier`                    | Code must match Prettier                            |
-| `react-refresh/only-export-components` | Fast Refresh: export components (constants allowed) |
+| Rule                                   | Meaning                                                                   |
+| -------------------------------------- | ------------------------------------------------------------------------- |
+| `prettier/prettier`                    | Code must match Prettier                                                  |
+| `bhhc/react-imports`                   | `import React, { useState } from 'react'` — no `import type` from `react` |
+| `bhhc/mui-component-imports`           | One MUI component: path default; several: named barrel                    |
+| `react-refresh/only-export-components` | Fast Refresh: export components (constants allowed)                       |
 
 ---
 
@@ -578,16 +638,14 @@ Treat them as errors in practice: fix or change the code; do not leave warnings 
 
 ### Explicitly disabled by this repo
 
-| Rule                                             | Where                      | Why                                    | Example that is allowed                    |
-| ------------------------------------------------ | -------------------------- | -------------------------------------- | ------------------------------------------ |
-| `react/prop-types`                               | all                        | TypeScript types                       | `export type ButtonProps = MuiButtonProps` |
-| `react/react-in-jsx-scope`                       | all                        | JSX runtime                            | `<Button />` without importing React       |
-| `react/jsx-uses-react`                           | all                        | JSX runtime                            | same                                       |
-| `import-x/no-default-export`                     | App, stories, configs, dts | Tooling requires default export        | `export default meta`                      |
-| `react-refresh/only-export-components`           | `src/exports/**`           | `export *` barrels                     | `export * from '@mui/material'`            |
-| `simple-import-sort/exports`                     | `src/exports/**`           | Keep `export *` then overrides         | `export *` then `export { Button }`        |
-| `@typescript-eslint/consistent-type-definitions` | `*.d.ts`                   | Declaration merging                    | `interface ImportMeta { ... }`             |
-| `@typescript-eslint/no-deprecated`               | `eslint.config.ts`         | `tseslint.config()` types vs Storybook | `export default tseslint.config(...)`      |
+| Rule                                             | Where                                 | Why                                    | Example that is allowed                    |
+| ------------------------------------------------ | ------------------------------------- | -------------------------------------- | ------------------------------------------ |
+| `react/prop-types`                               | all                                   | TypeScript types                       | `export type ButtonProps = MuiButtonProps` |
+| `import-x/no-default-export`                     | App, stories, configs, dts            | Tooling requires default export        | `export default meta`                      |
+| `react-refresh/only-export-components`           | `src/exports/**`                      | `export *` barrels                     | `export * from '@mui/material'`            |
+| `simple-import-sort/exports`                     | `src/exports/**`                      | Keep `export *` then overrides         | `export *` then `export { Button }`        |
+| `@typescript-eslint/consistent-type-definitions` | `*.d.ts`                              | Declaration merging                    | `interface ImportMeta { ... }`             |
+| `@typescript-eslint/no-deprecated`               | `eslint.config.ts`, `eslint-rules/**` | `tseslint.config()` types vs Storybook | `export default tseslint.config(...)`      |
 
 ### Turned off because TypeScript already handles them
 

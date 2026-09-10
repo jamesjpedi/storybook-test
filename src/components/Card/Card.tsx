@@ -1,7 +1,7 @@
-import { forwardRef } from 'react';
-import { Card as MuiCard } from '@mui/material';
+import React, { forwardRef } from 'react';
+import MuiCard from '@mui/material/Card';
 
-import type { CardProps as MuiCardProps } from '@mui/material';
+import type { CardProps as MuiCardProps } from '@mui/material/Card';
 
 export type CardProps = MuiCardProps;
 

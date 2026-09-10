@@ -1,3 +1,4 @@
+import React from 'react';
 import { CardContent, Typography } from '@mui/material';
 
 import { Card } from './Card';

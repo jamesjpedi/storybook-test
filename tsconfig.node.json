@@ -31,6 +31,7 @@
     "vite.lib.config.ts",
     "eslint.config.ts",
     "commitlint.config.ts",
-    "eslint-plugins.d.ts"
+    "eslint-plugins.d.ts",
+    "eslint-rules/**/*.ts"
   ]
 }
