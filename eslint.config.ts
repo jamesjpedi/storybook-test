@@ -156,7 +156,7 @@ export default tseslint.config(
       'import-x/first': 'error',
       'import-x/newline-after-import': 'error',
       'import-x/no-duplicates': 'error',
-      'import-x/no-default-export': 'error',
+      'import-x/no-default-export': 'off',
       'import-x/consistent-type-specifier-style': ['error', 'prefer-top-level'],
       '@stylistic/padding-line-between-statements': paddingLineBetweenStatements,
       eqeqeq: ['error', 'always'],

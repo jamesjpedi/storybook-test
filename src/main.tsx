@@ -1,10 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 
-import App from './App.tsx';
+import App from './app';
 import { applyMuiXLicense } from './license';
 
-import './index.css';
+import './app/index.css';
 
 applyMuiXLicense();
 

@@ -1,11 +1,11 @@
 import { CardContent, CssBaseline, ThemeProvider, Typography } from '@mui/material';
 
-import { Button, Card } from './components';
-import { theme } from './theme';
+import { Button, Card } from '../components';
+import { theme } from '../theme';
 
 import './index.css';
 
-function App() {
+export function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -59,5 +59,3 @@ function App() {
     </ThemeProvider>
   );
 }
-
-export default App;
