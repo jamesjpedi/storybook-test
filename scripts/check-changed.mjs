@@ -6,7 +6,7 @@ const prettierPattern = /\.(?:ts|tsx|js|jsx|mjs|cjs|json|md|mdx|css|yml|yaml|htm
 const typecheckPattern = /\.(?:ts|tsx)$/u;
 
 const typecheckConfigPattern =
-  /^(?:tsconfig.*\.json|eslint\.config\.ts|vite\.config\.ts|vite\.lib\.config\.ts)$/u;
+  /^(?:tsconfig.*\.json|eslint\.config\.ts|commitlint\.config\.ts|vite\.config\.ts|vite\.lib\.config\.ts)$/u;
 
 function isExcluded(file) {
   const normalized = file.replaceAll('\\', '/');
@@ -31,8 +31,17 @@ function refExists(ref) {
   return spawnSync('git', ['rev-parse', '--verify', '--quiet', ref]).status === 0;
 }
 
+const INTEGRATION_BRANCHES = ['development', 'qa', 'master', 'main'];
+
 function defaultMainRef() {
-  const candidates = ['origin/main', 'origin/master', 'main', 'master'];
+  const candidates = [
+    'origin/development',
+    'development',
+    'origin/main',
+    'origin/master',
+    'main',
+    'master',
+  ];
 
   return candidates.find((ref) => refExists(ref));
 }
@@ -55,13 +64,9 @@ function prTargetRef() {
 function isDefaultBranch() {
   const source = process.env.BUILD_SOURCEBRANCH ?? '';
   const current = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+  const fromPipeline = source.replace(/^refs\/heads\//u, '');
 
-  return (
-    source === 'refs/heads/main' ||
-    source === 'refs/heads/master' ||
-    current === 'main' ||
-    current === 'master'
-  );
+  return INTEGRATION_BRANCHES.includes(current) || INTEGRATION_BRANCHES.includes(fromPipeline);
 }
 
 function resolveBase() {

@@ -78,11 +78,10 @@ Use **DataGrid** from the premium entry. It is MUI X `DataGridPremium` (also exp
 
 ## Publish a changelog version
 
-Changelog notes are **plain markdown files**, one file per version. There is no semantic versioning — name files however you like (`Launch.md`, `Summer-Refresh.md`, `2026-09.md`).
+Do not add changelog files by hand. On `development`, `qa`, or `master`:
 
-1. Add a file in `src/docs/changelog/versions/`.
-2. Write notes in markdown.
-3. Restart Storybook if the new file does not appear immediately.
-4. Open **Changelog** in the sidebar and pick the version from the dropdown.
+```bash
+npm run release
+```
 
-The filename (without `.md`) is the label in the dropdown. Files are listed newest-first using the filename, so a `YYYY-MM` prefix keeps them in date order.
+That updates `package.json`, `CHANGELOG.md`, `src/docs/changelog/versions/<version>.md`, and an annotated `v*` tag (`1.0.0-development.1`, `1.0.0-qa.1`, `1.0.0`). Open **Changelog** in the sidebar to pick a version. Full rules are in `dev-docs/VERSIONING.md`.

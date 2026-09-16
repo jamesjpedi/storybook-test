@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import Markdown from 'react-markdown';
 
+import { compareVersions } from './compare-versions';
+
 import './ChangelogViewer.css';
 
 const changelogLoaders = import.meta.glob('./versions/*.md', {
@@ -19,7 +21,7 @@ const versions = Object.entries(changelogLoaders)
     id: versionFromPath(path),
     load,
   }))
-  .sort((a, b) => b.id.localeCompare(a.id, undefined, { numeric: true, sensitivity: 'base' }));
+  .sort((a, b) => compareVersions(b.id, a.id));
 
 export function ChangelogViewer() {
   const [selected, setSelected] = useState(versions[0]?.id ?? '');
@@ -59,8 +61,8 @@ export function ChangelogViewer() {
   if (versions.length === 0) {
     return (
       <p className="changelog-empty">
-        No changelog files yet. Add a <code>.md</code> file in{' '}
-        <code>src/docs/changelog/versions/</code>.
+        No changelog files yet. Cut a version with <code>npm run release</code> on{' '}
+        <code>development</code>, <code>qa</code>, or <code>master</code>.
       </p>
     );
   }

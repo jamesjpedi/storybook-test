@@ -120,6 +120,7 @@ export default tseslint.config(
             '.storybook/*.tsx',
             'prettier.config.js',
             'scripts/*.mjs',
+            'scripts/versioning/*.mjs',
           ],
         },
         tsconfigRootDir: import.meta.dirname,
