@@ -3,6 +3,7 @@ import {
   PRODUCTION_BRANCHES,
   QA_BRANCH,
   TAG_PATTERN,
+  TAG_PREFIX,
   WORKING_BRANCH_PATTERN,
 } from './config.mjs';
 import { describeVersionRule, isProductionBranch, versionAllowedOnRemote } from './version.mjs';
@@ -99,6 +100,18 @@ export function assertValidReleaseTag(tagName) {
   throw new Error(
     `Tag "${tagName}" is not allowed. Use vX.Y.Z, vX.Y.Z-development.N, or vX.Y.Z-qa.N.`,
   );
+}
+
+export function assertTagMatchesVersion(tagName, version) {
+  assertValidReleaseTag(tagName);
+
+  const expected = `${TAG_PREFIX}${version}`;
+
+  if (tagName !== expected) {
+    throw new Error(
+      `Tag ${tagName} does not match package.json version ${version} (expected ${expected}).`,
+    );
+  }
 }
 
 export function parsePushLine(line) {

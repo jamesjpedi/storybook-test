@@ -734,12 +734,15 @@ Unstaged files are not rewritten. `npm run check` still scans the whole tree (no
 
 ## Azure DevOps CI
 
-[azure-pipelines.yml](../azure-pipelines.yml) uses the same fail-only, changed-file checks via `prebuild:lib` / `prebuild-storybook`:
+[azure-pipelines.yml](../azure-pipelines.yml) uses the same fail-only, changed-file checks via `prebuild:lib` / `prebuild-storybook`, plus the versioning flow:
 
 | Step                             | When          | Command                                                 |
 | -------------------------------- | ------------- | ------------------------------------------------------- |
 | Commitlint                       | Pull requests | `commitlint --from origin/<target> --to HEAD`           |
+| Version flow                     | Every CI run  | `node scripts/versioning/check-flow.mjs --ci`           |
+| Versioning tests                 | Every CI run  | `npm run test:versioning`                               |
 | Check (fail-only, changed files) | Every CI run  | `prebuild:lib` / `prebuild-storybook` → `check:changed` |
 | Library / Storybook build        | Every CI run  | `build:lib`, `build-storybook`                          |
+| npm publish                      | `v*` tags     | `npm publish --tag development` / `qa` / `latest`       |
 
 `npm ci` sets `HUSKY=0` so install does not install git hooks on the agent. Merge commits are ignored by Commitlint’s default ignores.

@@ -8,7 +8,8 @@
   "module": "./dist/exports/material.js",
   "types": "./dist/exports/material.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "sideEffects": [
     "./dist/**/*.js"
@@ -111,6 +112,7 @@
     "release": "node scripts/versioning/release.mjs",
     "release:dry-run": "node scripts/versioning/release.mjs --dry-run",
     "version:check": "node scripts/versioning/check-flow.mjs",
+    "version:check:ci": "node scripts/versioning/check-flow.mjs --ci",
     "test:versioning": "node --test scripts/versioning/*.test.mjs",
     "prebuild": "npm run check:changed",
     "build": "tsc -b && vite build",

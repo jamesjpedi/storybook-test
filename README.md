@@ -21,6 +21,7 @@ npm run format:check  # Prettier check (whole tree)
 npm run release        # Bump package.json, changelog, and annotated v* tag
 npm run release:dry-run
 npm run version:check  # Confirm the current branch follows development → qa → master
+npm run version:check:ci
 ```
 
 `npm run build`, `npm run build:lib`, and `npm run build-storybook` run `check:changed` first. That fails on issues and does not auto-fix. It only looks at files changed in the current PR (vs the target branch) or on a feature branch (vs `development`, then `main`/`master`).
@@ -31,12 +32,14 @@ Code style, TypeScript, ESLint, Prettier, and commit hooks are documented in [de
 
 ## Azure DevOps
 
-[azure-pipelines.yml](azure-pipelines.yml) runs on PRs and `main`:
+[azure-pipelines.yml](azure-pipelines.yml) runs on PRs and pushes to `development`, `qa`, and `master` (plus `main` as an alias), and on `v*` tags:
 
-1. **Commitlint** (pull requests only) — Conventional Commits on the PR range
-2. **`build:lib`** — `check:changed` (ESLint, Prettier, typecheck on PR/branch files; no `--fix`) then library build with MUI X signing
-3. **`build-storybook`** — same `check:changed` then Storybook
-4. Publishes `bhhc-design-system` to Azure Artifacts when you push a `v*` tag (for example `v1.0.0`). Tags are created by `npm run release`, not by hand.
+1. **Commitlint** (pull requests) — Conventional Commits + `AB#` story ids on the PR range
+2. **Version flow** — `development` → `qa` → `master`; tag must match `package.json`
+3. **Versioning tests** — bump, changelog, and promotion unit tests
+4. **`build:lib`** — `check:changed` then library build with MUI X signing
+5. **`build-storybook`** — same `check:changed` then Storybook
+6. Publishes `bhhc-design-system` to Azure Artifacts on `v*` tags from `npm run release`, with npm dist-tag `development`, `qa`, or `latest`
 
 Setup:
 

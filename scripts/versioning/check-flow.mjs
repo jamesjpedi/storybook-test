@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { PACKAGE_JSON_PATH } from './config.mjs';
 import {
   assertAllowedPush,
+  assertTagMatchesVersion,
   assertValidReleaseTag,
   assertVersionForRemote,
   isIntegrationBranch,
@@ -38,7 +39,66 @@ function readPackageVersion(rootDir) {
 function parseArgs(argv) {
   return {
     prePush: argv.includes('--pre-push'),
+    ci: argv.includes('--ci'),
   };
+}
+
+export function resolveCiContext(env) {
+  const prSource = env.SYSTEM_PULLREQUEST_SOURCEBRANCH;
+  const prTarget = env.SYSTEM_PULLREQUEST_TARGETBRANCH;
+  const buildSource = env.BUILD_SOURCEBRANCH ?? '';
+
+  if (prSource && prTarget) {
+    return {
+      kind: 'pull-request',
+      source: normalizeBranch(prSource),
+      target: normalizeBranch(prTarget),
+    };
+  }
+
+  if (isTagRef(buildSource)) {
+    return {
+      kind: 'tag',
+      tagName: tagNameFromRef(buildSource),
+    };
+  }
+
+  if (buildSource.startsWith('refs/heads/')) {
+    return {
+      kind: 'branch',
+      branch: normalizeBranch(buildSource),
+    };
+  }
+
+  return { kind: 'local' };
+}
+
+export function assertCiContext(context, version) {
+  if (context.kind === 'pull-request') {
+    assertAllowedPush(context.source, context.target);
+
+    if (isIntegrationBranch(context.target)) {
+      assertVersionForRemote(version, context.target);
+    }
+
+    return `pull request ${context.source} → ${context.target} (${version})`;
+  }
+
+  if (context.kind === 'tag') {
+    assertTagMatchesVersion(context.tagName, version);
+
+    return `tag ${context.tagName} (${version})`;
+  }
+
+  if (context.kind === 'branch') {
+    if (isIntegrationBranch(context.branch)) {
+      assertVersionForRemote(version, context.branch);
+    }
+
+    return `branch ${context.branch} (${version})`;
+  }
+
+  return undefined;
 }
 
 function checkCurrentBranch() {
@@ -53,6 +113,20 @@ function checkCurrentBranch() {
 
   assertVersionForRemote(version, branch);
   console.error(`version:check passed on ${branch} (${version}).`);
+}
+
+function checkAzureCi(env) {
+  const context = resolveCiContext(env);
+  const version = readPackageVersion(repoRoot());
+  const summary = assertCiContext(context, version);
+
+  if (!summary) {
+    checkCurrentBranch();
+
+    return;
+  }
+
+  console.error(`version:check passed for ${summary}.`);
 }
 
 function checkPrePush(input) {
@@ -108,6 +182,12 @@ function checkPrePush(input) {
 
 async function main() {
   const options = parseArgs(process.argv.slice(2));
+
+  if (options.ci) {
+    checkAzureCi(process.env);
+
+    return;
+  }
 
   if (!options.prePush) {
     checkCurrentBranch();

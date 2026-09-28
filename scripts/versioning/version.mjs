@@ -170,6 +170,24 @@ export function versionAllowedOnRemote(version, remoteBranch) {
   return true;
 }
 
+export function npmDistTag(version) {
+  const channel = channelOf(version);
+
+  if (channel === CHANNEL_DEVELOPMENT) {
+    return CHANNEL_DEVELOPMENT;
+  }
+
+  if (channel === CHANNEL_QA) {
+    return CHANNEL_QA;
+  }
+
+  if (channel === 'production') {
+    return 'latest';
+  }
+
+  throw new Error(`Cannot publish "${version}". Use x.y.z, x.y.z-development.N, or x.y.z-qa.N.`);
+}
+
 export function describeVersionRule(remoteBranch) {
   if (remoteBranch === DEVELOPMENT_BRANCH) {
     return '0.0.0, a stable production version, or an x.y.z-development.N prerelease';

@@ -2,6 +2,7 @@
 #
 # Quality gates run as npm prebuild hooks on changed files only (no --fix).
 # `npm run build:lib` / `build-storybook` fail if ESLint, Prettier, or typecheck fail.
+# Versioning gates enforce development → qa → master and vX.Y.Z[-development.N|-qa.N] tags.
 #
 # Required pipeline (secret) variable:
 #   MUI_X_LICENSE_KEY  — MUI X Premium license; inlined into the published package
@@ -11,13 +12,16 @@
 #                        Override in the pipeline UI if it is not `bhhc-design-system`.
 #
 # Grant the project Build Service "Contributor" on the feed so npm publish can write.
-# Publish runs only on tags matching v* (e.g. v0.1.0). Bump package.json version first.
+# Publish runs only on tags matching v* produced by `npm run release`.
+# Dist-tags: development → development, qa → qa, stable → latest.
 
 trigger:
   branches:
     include:
-      - main
+      - development
+      - qa
       - master
+      - main
   tags:
     include:
       - v*
@@ -25,8 +29,10 @@ trigger:
 pr:
   branches:
     include:
-      - main
+      - development
+      - qa
       - master
+      - main
 
 pool:
   vmImage: ubuntu-latest
@@ -44,8 +50,9 @@ stages:
         steps:
           - checkout: self
             fetchDepth: 0
+            fetchTags: true
             persistCredentials: true
-            displayName: Checkout (full history for Commitlint and check:changed)
+            displayName: Checkout (full history for Commitlint and versioning)
 
           - task: NodeTool@0
             displayName: Use Node $(nodeVersion)
@@ -74,6 +81,20 @@ stages:
             displayName: Commitlint (PR commits)
             condition: eq(variables['Build.Reason'], 'PullRequest')
 
+          - script: node scripts/versioning/check-flow.mjs --ci
+            displayName: Version flow (development → qa → master)
+
+          - script: npm run test:versioning
+            displayName: Versioning unit tests
+
+          - bash: |
+              set -euo pipefail
+              TAG="$(node scripts/versioning/dist-tag.mjs)"
+              echo "npm dist-tag: ${TAG}"
+              echo "##vso[task.setvariable variable=npmDistTag;isOutput=true]${TAG}"
+            name: VersionMeta
+            displayName: Resolve npm dist-tag
+
           - script: npm run build:lib
             displayName: Check (fail-only) and build library
             env:
@@ -86,7 +107,7 @@ stages:
               set -euo pipefail
               STAGE="$(Build.ArtifactStagingDirectory)/npm"
               mkdir -p "$STAGE"
-              cp package.json README.md GETTING_STARTED.md "$STAGE/"
+              cp package.json README.md GETTING_STARTED.md CHANGELOG.md "$STAGE/"
               cp -R dist "$STAGE/dist"
             displayName: Stage npm package (no node_modules)
 
@@ -108,6 +129,8 @@ stages:
     displayName: Publish npm package
     dependsOn: Build
     condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/v'))
+    variables:
+      npmDistTag: $[stageDependencies.Build.Ci.outputs['VersionMeta.npmDistTag']]
     jobs:
       - job: Npm
         displayName: Azure Artifacts
@@ -120,6 +143,16 @@ stages:
             inputs:
               versionSpec: $(nodeVersion)
 
+          - bash: |
+              set -euo pipefail
+              TAG="$(npmDistTag)"
+              if [ -z "${TAG}" ]; then
+                echo "npm dist-tag was not set by the Build stage."
+                exit 1
+              fi
+              echo "Publishing bhhc-design-system with dist-tag ${TAG}"
+            displayName: Confirm npm dist-tag
+
           # dist is already signed in Build. Skip prepublishOnly (it would rebuild).
           - script: npm pkg delete scripts.prepublishOnly
             displayName: Skip rebuild on publish
@@ -128,7 +161,8 @@ stages:
           - task: Npm@1
             displayName: Publish bhhc-design-system
             inputs:
-              command: publish
+              command: custom
+              customCommand: publish --tag $(npmDistTag)
               workingDir: $(Pipeline.Workspace)/package
-              publishRegistry: useFeed
-              publishFeed: $(npmFeed)
+              customRegistry: useFeed
+              customFeed: $(npmFeed)

@@ -2,9 +2,7 @@
 
 This design system follows [Semantic Versioning 2.0.0](https://semver.org/spec/v2.0.0.html), [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/), [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and Azure Boards work-item linking (`AB#12345`).
 
-Do **not** edit `package.json` `"version"` by hand or create `v*` tags by hand. Use `npm run release`.
-
-Pipeline wiring (Azure DevOps publish on tags) is intentionally unchanged. Add CI steps later; the local commands, hooks, and rules already encode the flow.
+Do **not** edit `package.json` `"version"` by hand or create `v*` tags by hand. Use `npm run release`. Azure Pipelines enforces the same promotion flow and publishes `v*` tags to Azure Artifacts.
 
 ## Promotion flow
 
@@ -61,7 +59,8 @@ On `master`:
 | `npm run release -- --dry-run` | Print the next version and changelog; write nothing                                                |
 | `npm run release -- --push`    | Same as `release`, then `git push --follow-tags`                                                   |
 | `npm run version:check`        | Confirm the current branch’s version is legal for that lane                                        |
-| `npm run test:versioning`      | Unit tests for bump, flow, changelog, and Azure Boards linking                                     |
+| `npm run version:check:ci`     | Same rules using Azure DevOps PR/branch/tag env vars                                               |
+| `npm run test:versioning`      | Unit tests for bump, flow, changelog, Azure Boards linking, and CI checks                          |
 
 The working tree must be clean. Run from `development`, `qa`, or `master` only.
 
@@ -153,13 +152,17 @@ Recommended working-branch names (not required by the hook): `feature/12345-shor
 
 Hotfixes follow the same path. Do not commit directly to `master` to skip QA.
 
-## Azure DevOps (later)
+## Azure DevOps
 
-Do not change [azure-pipelines.yml](../azure-pipelines.yml) in this work. When pipelines are updated, they should:
+[azure-pipelines.yml](../azure-pipelines.yml) runs the same promotion rules as the local hooks:
 
-- Run `npm run version:check` (and `--pre-push` equivalent using `SYSTEM_PULLREQUEST_SOURCEBRANCH` / `SYSTEM_PULLREQUEST_TARGETBRANCH`)
-- Run `npx commitlint --from origin/<target> --to HEAD` on PRs (already present)
-- Keep publishing `bhhc-design-system` from `v*` tags produced by `npm run release`
+| Trigger                                          | What runs                                                                                     |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
+| PRs into `development`, `qa`, `master` / `main`  | Commitlint, `check-flow --ci` (source → target), versioning tests, library + Storybook builds |
+| Pushes to `development`, `qa`, `master` / `main` | `check-flow --ci` (branch vs `package.json`), versioning tests, builds                        |
+| `v*` tags from `npm run release`                 | Same checks, plus publish to Azure Artifacts with dist-tag `development`, `qa`, or `latest`   |
+
+`check-flow --ci` uses `SYSTEM_PULLREQUEST_SOURCEBRANCH` / `SYSTEM_PULLREQUEST_TARGETBRANCH` on PRs and `BUILD_SOURCEBRANCH` on branch and tag builds. Skip-lane PRs (`development` → `master`, feature → `qa`) fail. Tag builds fail if the tag is not `v` + `package.json` version.
 
 Recommended **branch policies** (repo settings, not this YAML):
 
@@ -176,5 +179,7 @@ Recommended **branch policies** (repo settings, not this YAML):
 | `QA releases must start from a development prerelease` | You are on `qa` with a stable or production version. Merge `development` first, then release. |
 | `Production releases must start from a qa prerelease`  | Do not release `master` from `development`. Promote to `qa` and cut `x.y.z-qa.N` first.       |
 | `feat/fix/... must include an Azure Boards id`         | Add `AB#12345` to the commit body.                                                            |
+| `Refusing to push … → …`                               | The PR or push skipped a lane. Promote `development` → `qa` → `master` only.                  |
+| `Tag v… does not match package.json`                   | Create tags with `npm run release`, not by hand.                                              |
 | `Tag v… already exists`                                | Fetch tags (`git fetch --tags`) or increment by running release only after new commits.       |
 | Story ids have no links                                | Set `AZURE_DEVOPS_ORG` and `AZURE_DEVOPS_PROJECT`, or point `origin` at Azure DevOps.         |
