@@ -16,7 +16,12 @@ export function isProductionBranch(branch) {
 }
 
 export function canCutRelease(branch) {
-  return branch === QA_BRANCH || isProductionBranch(branch) || isNamedReleaseBranch(branch);
+  return (
+    branch === DEVELOPMENT_BRANCH ||
+    branch === QA_BRANCH ||
+    isProductionBranch(branch) ||
+    isNamedReleaseBranch(branch)
+  );
 }
 
 export function sanitizePrereleaseId(raw) {
@@ -117,12 +122,8 @@ function requireStableReleaseAs(releaseAs, branch) {
     throw new Error(`--release-as must be a stable x.y.z version (got "${releaseAs}").`);
   }
 
-  if (branch === DEVELOPMENT_BRANCH) {
-    throw new Error('Do not cut versions on development. Cherry-pick onto qa/<slug> instead.');
-  }
-
-  if (branch !== QA_BRANCH && !isNamedReleaseBranch(branch)) {
-    throw new Error('--release-as is only used on qa or a release:<slug> branch.');
+  if (branch !== DEVELOPMENT_BRANCH && branch !== QA_BRANCH && !isNamedReleaseBranch(branch)) {
+    throw new Error('--release-as is only used on development, qa, or a release:<slug> branch.');
   }
 }
 
@@ -153,24 +154,26 @@ export function nextVersion({ current, branch, bump, releaseAs }) {
 
   if (semver.parse(current)?.prerelease.length && !currentChannel) {
     throw new Error(
-      `Unsupported prerelease in "${current}". Use x.y.z, x.y.z-qa.N, or x.y.z-<release-slug>.N.`,
+      `Unsupported prerelease in "${current}". Use x.y.z-development.N, x.y.z-qa.N, or x.y.z-<release-slug>.N.`,
     );
   }
 
   if (branch === DEVELOPMENT_BRANCH) {
-    throw new Error(
-      'Do not cut versions on development. Branch from qa, cherry-pick from development, and release on qa.',
-    );
+    return nextPrerelease({ current, channel: CHANNEL_DEVELOPMENT, bump, releaseAs });
   }
 
   if (branch === QA_BRANCH) {
+    if (currentChannel === CHANNEL_DEVELOPMENT) {
+      return `${coreVersion(current)}-${CHANNEL_QA}.1`;
+    }
+
     return nextPrerelease({ current, channel: CHANNEL_QA, bump, releaseAs });
   }
 
   if (isNamedReleaseBranch(branch)) {
     const channel = namedReleaseChannel(branch);
 
-    if (currentChannel === CHANNEL_QA) {
+    if (currentChannel === CHANNEL_QA || currentChannel === CHANNEL_DEVELOPMENT) {
       return `${coreVersion(current)}-${channel}.1`;
     }
 
@@ -190,7 +193,7 @@ export function nextVersion({ current, branch, bump, releaseAs }) {
   }
 
   throw new Error(
-    `Releases are only allowed on ${QA_BRANCH}, release:<slug>, or ${PRODUCTION_BRANCHES.join('/')}.`,
+    `Releases are only allowed on ${DEVELOPMENT_BRANCH}, ${QA_BRANCH}, release:<slug>, or ${PRODUCTION_BRANCHES.join('/')}.`,
   );
 }
 
@@ -198,11 +201,11 @@ export function versionAllowedOnRemote(version, remoteBranch) {
   const channel = channelOf(version);
 
   if (remoteBranch === DEVELOPMENT_BRANCH) {
-    return true;
+    return channel === 'production' || channel === CHANNEL_DEVELOPMENT;
   }
 
   if (remoteBranch === QA_BRANCH || isQaPromoteBranch(remoteBranch)) {
-    return channel === 'production' || channel === CHANNEL_QA;
+    return channel === 'production' || channel === CHANNEL_DEVELOPMENT || channel === CHANNEL_QA;
   }
 
   if (isNamedReleaseBranch(remoteBranch)) {
@@ -214,7 +217,12 @@ export function versionAllowedOnRemote(version, remoteBranch) {
       return false;
     }
 
-    return channel === 'production' || channel === CHANNEL_QA || channel === slug;
+    return (
+      channel === 'production' ||
+      channel === CHANNEL_DEVELOPMENT ||
+      channel === CHANNEL_QA ||
+      channel === slug
+    );
   }
 
   if (isProductionBranch(remoteBranch)) {
@@ -243,15 +251,15 @@ export function npmDistTag(version) {
 
 export function describeVersionRule(remoteBranch) {
   if (remoteBranch === DEVELOPMENT_BRANCH) {
-    return 'any version (development is not versioned)';
+    return 'a stable x.y.z version or an x.y.z-development.N prerelease';
   }
 
   if (remoteBranch === QA_BRANCH) {
-    return 'a stable x.y.z version or an x.y.z-qa.N prerelease';
+    return 'a stable x.y.z version, an x.y.z-development.N prerelease, or an x.y.z-qa.N prerelease';
   }
 
   if (isNamedReleaseBranch(remoteBranch)) {
-    return 'a stable version, an x.y.z-qa.N prerelease, or x.y.z-<slug>.N for this release branch';
+    return 'a stable version, an x.y.z-development.N or x.y.z-qa.N prerelease, or x.y.z-<slug>.N for this release branch';
   }
 
   if (isProductionBranch(remoteBranch)) {

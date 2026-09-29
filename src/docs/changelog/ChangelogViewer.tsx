@@ -62,7 +62,8 @@ export function ChangelogViewer() {
     return (
       <p className="changelog-empty">
         No changelog files yet. Cut a version with <code>npm run release</code> on{' '}
-        <code>development</code>, <code>qa</code>, or <code>master</code>.
+        <code>development</code>, <code>qa</code>, a <code>release:&lt;slug&gt;</code> branch, or{' '}
+        <code>master</code>.
       </p>
     );
   }

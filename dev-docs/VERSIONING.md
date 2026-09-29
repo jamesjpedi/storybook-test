@@ -4,14 +4,14 @@ This design system follows [Semantic Versioning 2.0.0](https://semver.org/spec/v
 
 Do **not** edit `package.json` `"version"` by hand or create `v*` tags by hand. Use `npm run release`. Azure Pipelines enforces the same promotion flow and publishes `v*` tags to Azure Artifacts.
 
-**`development` is never versioned.** Do not run `npm run release` there and do not merge `development` into `qa` or `master`.
+Work lands on `development` as `x.y.z-development.N`. Promote by cherry-pick — do not merge `development` into `qa` or `qa` into `master`.
 
 ## Promotion flow
 
 ```text
 feature / bugfix / …
         ↓ PR
-   development          ← no package version changes
+   development          ← npm run release → 1.0.0-development.N
         ↓ cherry-pick onto a branch created from qa
    qa/<slug>            ← merge this branch only to qa
         ↓ PR
@@ -22,13 +22,13 @@ feature / bugfix / …
       master            ← npm run release → 1.0.0
 ```
 
-| Branch           | Package version     | Git tag                 | How it is created                                                                                              |
-| ---------------- | ------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `development`    | unchanged           | none                    | Feature PRs only. No `npm run release`.                                                                        |
-| `qa/<slug>`      | inherited from `qa` | none until merged to qa | `git checkout qa && git switch -c qa/<slug>`, then cherry-pick from `development`. Merge **only** to `qa`.     |
-| `qa`             | `1.0.0-qa.N`        | `v1.0.0-qa.N`           | After the cherry-pick PR lands, run `npm run release`.                                                         |
-| `release:<slug>` | `1.0.0-<slug>.N`    | `v1.0.0-<slug>.N`       | `git checkout master && git switch -c release:<slug>`, then cherry-pick from `qa`. Merge **only** to `master`. |
-| `master`         | `1.0.0`             | `v1.0.0`                | After the release PR lands, run `npm run release`.                                                             |
+| Branch           | Package version                   | Git tag                 | How it is created                                                                                              |
+| ---------------- | --------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `development`    | `1.0.0-development.N`             | `v1.0.0-development.N`  | Feature PRs only. After merge, run `npm run release`.                                                          |
+| `qa/<slug>`      | inherited (often `development.N`) | none until merged to qa | `git checkout qa && git switch -c qa/<slug>`, then cherry-pick from `development`. Merge **only** to `qa`.     |
+| `qa`             | `1.0.0-qa.N`                      | `v1.0.0-qa.N`           | After the cherry-pick PR lands, run `npm run release`.                                                         |
+| `release:<slug>` | `1.0.0-<slug>.N`                  | `v1.0.0-<slug>.N`       | `git checkout master && git switch -c release:<slug>`, then cherry-pick from `qa`. Merge **only** to `master`. |
+| `master`         | `1.0.0`                           | `v1.0.0`                | After the release PR lands, run `npm run release`.                                                             |
 
 `release/<slug>` is accepted as well as `release:<slug>`. `qa:<slug>` is accepted as well as `qa/<slug>`. The slug must start with a letter and use only letters, digits, and hyphens (`sprint-12`, `some-test-or-version`).
 
@@ -48,11 +48,18 @@ Skipping a lane is rejected:
 - **MINOR** — `feat:` (compatible addition)
 - **PATCH** — `fix:`, `perf:`, or other releasable changes when there is no `feat` / breaking change
 
+On `development`:
+
+- First cut: `npm run release` infers MAJOR/MINOR/PATCH from commits since the last **production** tag, then writes `X.Y.Z-development.1`
+- Further cuts on the same core: `X.Y.Z-development.2`, `.3`, …
+- To start at a specific core (typical for the first public `1.0.0`): `npm run release -- --release-as 1.0.0`
+
 On `qa`:
 
-- First cut: `npm run release` infers MAJOR/MINOR/PATCH from commits since the last **production** tag, then writes `X.Y.Z-qa.1`
+- After cherry-picking `development`, `X.Y.Z-development.N` → `X.Y.Z-qa.1` (same core)
 - Further cuts on the same core: `X.Y.Z-qa.2`, `.3`, …
-- To start at a specific core (typical for the first public `1.0.0`): `npm run release -- --release-as 1.0.0`
+- If `package.json` is still a stable version: infer MAJOR/MINOR/PATCH from commits since the last production tag, then write `X.Y.Z-qa.1`
+- To start at a specific core: `npm run release -- --release-as 1.0.0`
 
 On `release:<slug>` (same prerelease rules as `qa`):
 
@@ -64,7 +71,7 @@ On `master`:
 
 - `1.0.0-<slug>.N` → `1.0.0` (prerelease identifiers stripped)
 
-`0.0.0` means “never released”. The first qa cut without `--release-as` follows SemVer from `0.0.0` (a `feat` becomes `0.1.0-qa.1`).
+`0.0.0` means “never released”. The first development cut without `--release-as` follows SemVer from `0.0.0` (a `feat` becomes `0.1.0-development.1`).
 
 ## Commands
 
@@ -77,7 +84,7 @@ On `master`:
 | `npm run version:check:ci`     | Same rules using Azure DevOps PR/branch/tag env vars                                               |
 | `npm run test:versioning`      | Unit tests for bump, flow, changelog, Azure Boards linking, and CI checks                          |
 
-The working tree must be clean. Run `npm run release` from `qa`, a `release:<slug>` branch, or `master` only — never from `development`.
+The working tree must be clean. Run `npm run release` from `development`, `qa`, a `release:<slug>` branch, or `master`.
 
 After a local release without `--push`:
 
@@ -152,11 +159,11 @@ Husky `pre-push` and Azure Pipelines `check-flow --ci` enforce:
 
 `qa/<slug>` must be created from `qa`. `release:<slug>` must be created from `master` (checked with `git merge-base --is-ancestor` when those refs exist).
 
-Tags must be `vX.Y.Z`, `vX.Y.Z-qa.N`, or `vX.Y.Z-<release-slug>.N`.
+Tags must be `vX.Y.Z`, `vX.Y.Z-development.N`, `vX.Y.Z-qa.N`, or `vX.Y.Z-<release-slug>.N`.
 
 ## Daily workflow
 
-1. Branch from **latest `development`**. Commit with Conventional Commits and `AB#` ids. PR into **`development` only**.
+1. Branch from **latest `development`**. Commit with Conventional Commits and `AB#` ids. PR into **`development` only**. After merge, on `development`: `npm run release` (optionally `--release-as 1.0.0` the first time).
 2. To ship to QA:
    ```bash
    git fetch origin
@@ -166,7 +173,7 @@ Tags must be `vX.Y.Z`, `vX.Y.Z-qa.N`, or `vX.Y.Z-<release-slug>.N`.
    git cherry-pick <commits-from-development>
    git push -u origin qa/sprint-12
    ```
-   Open a PR **into `qa` only**. After merge, on `qa`: `npm run release` (optionally `--release-as 1.0.0` the first time).
+   Include the `chore(release):` commit so `package.json` arrives as `x.y.z-development.N`. Open a PR **into `qa` only**. After merge, on `qa`: `npm run release`.
 3. To ship to production:
    ```bash
    git fetch origin
@@ -185,11 +192,11 @@ Hotfixes follow the same path. Do not commit directly to `master` or merge `qa` 
 
 [azure-pipelines.yml](../azure-pipelines.yml) runs the same promotion rules as the local hooks:
 
-| Trigger                                                      | What runs                                                                                     |
-| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| PRs into `development`, `qa`, `master` / `main`              | Commitlint, `check-flow --ci` (source → target), versioning tests, library + Storybook builds |
-| Pushes to `development`, `qa`, `qa/*`, `release/*`, `master` | `check-flow --ci`, versioning tests, builds                                                   |
-| `v*` tags from `npm run release`                             | Same checks, plus publish to Azure Artifacts with dist-tag `qa`, `<slug>`, or `latest`        |
+| Trigger                                                      | What runs                                                                                             |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| PRs into `development`, `qa`, `master` / `main`              | Commitlint, `check-flow --ci` (source → target), versioning tests, library + Storybook builds         |
+| Pushes to `development`, `qa`, `qa/*`, `release/*`, `master` | `check-flow --ci`, versioning tests, builds                                                           |
+| `v*` tags from `npm run release`                             | Same checks, plus publish to Azure Artifacts with dist-tag `development`, `qa`, `<slug>`, or `latest` |
 
 `check-flow --ci` uses `SYSTEM_PULLREQUEST_SOURCEBRANCH` / `SYSTEM_PULLREQUEST_TARGETBRANCH` on PRs and `BUILD_SOURCEBRANCH` on branch and tag builds. Direct `development` → `qa` or `qa` → `master` PRs fail. Tag builds fail if the tag is not `v` + `package.json` version.
 
@@ -205,7 +212,7 @@ Recommended **branch policies** (repo settings, not this YAML):
 
 | Error                                                             | What to do                                                                              |
 | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| `Do not cut versions on development`                              | Branch from `qa`, cherry-pick, merge to `qa`, then `npm run release` on `qa`.           |
+| `npm run release must be run on development, qa, …`               | Switch to `development`, `qa`, `release:<slug>`, or `master` before cutting a version.  |
 | `Production releases must start from a release:<slug> prerelease` | Cut `1.0.0-<slug>.N` on the release branch before merging to `master`.                  |
 | `must be created from qa` / `must be created from master`         | Recreate the branch from the correct base, then cherry-pick.                            |
 | `feat/fix/... must include an Azure Boards id`                    | Add `AB#12345` to the commit body.                                                      |

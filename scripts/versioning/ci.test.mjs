@@ -54,6 +54,10 @@ test('CI rejects skip-lane PRs and mismatched tags', () => {
     /does not match/,
   );
   assert.equal(
+    assertCiContext({ kind: 'branch', branch: 'development' }, '1.0.0-development.1'),
+    'branch development (1.0.0-development.1)',
+  );
+  assert.equal(
     assertCiContext({ kind: 'pull-request', source: 'qa/sprint-12', target: 'qa' }, '1.0.0-qa.1'),
     'pull request qa/sprint-12 → qa (1.0.0-qa.1)',
   );
@@ -65,9 +69,16 @@ test('CI rejects skip-lane PRs and mismatched tags', () => {
     'pull request release:sprint-12 → master (1.0.0-sprint-12.1)',
   );
   assert.equal(assertCiContext({ kind: 'tag', tagName: 'v1.0.0' }, '1.0.0'), 'tag v1.0.0 (1.0.0)');
+  assert.throws(
+    () => assertCiContext({ kind: 'branch', branch: 'development' }, '1.0.0-qa.1'),
+    /cannot be pushed to development/,
+  );
   assert.equal(
-    assertCiContext({ kind: 'branch', branch: 'development' }, '0.0.0'),
-    'branch development (0.0.0)',
+    assertCiContext(
+      { kind: 'pull-request', source: 'qa/sprint-12', target: 'qa' },
+      '1.0.0-development.1',
+    ),
+    'pull request qa/sprint-12 → qa (1.0.0-development.1)',
   );
 });
 

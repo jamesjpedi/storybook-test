@@ -112,7 +112,7 @@ export function assertValidReleaseTag(tagName) {
   }
 
   throw new Error(
-    `Tag "${tagName}" is not allowed. Use vX.Y.Z, vX.Y.Z-qa.N, or vX.Y.Z-<release-slug>.N.`,
+    `Tag "${tagName}" is not allowed. Use vX.Y.Z, vX.Y.Z-development.N, vX.Y.Z-qa.N, or vX.Y.Z-<release-slug>.N.`,
   );
 }
 

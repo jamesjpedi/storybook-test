@@ -14,7 +14,9 @@ import {
 import { inferBump, parseCommit } from './commits.mjs';
 import {
   CHANGELOG_PATH,
+  CHANNEL_DEVELOPMENT,
   CHANNEL_QA,
+  DEVELOPMENT_BRANCH,
   isNamedReleaseBranch,
   PACKAGE_JSON_PATH,
   QA_BRANCH,
@@ -124,9 +126,21 @@ function changelogFromRef(branch, current) {
     return lastReleaseTag({ channel: 'production' });
   }
 
+  if (branch === DEVELOPMENT_BRANCH) {
+    if (currentChannel === CHANNEL_DEVELOPMENT) {
+      return lastReleaseTag({ channel: CHANNEL_DEVELOPMENT, core });
+    }
+
+    return lastReleaseTag({ channel: 'production' });
+  }
+
   if (branch === QA_BRANCH) {
     if (currentChannel === CHANNEL_QA) {
       return lastReleaseTag({ channel: CHANNEL_QA, core });
+    }
+
+    if (currentChannel === CHANNEL_DEVELOPMENT) {
+      return lastReleaseTag({ channel: CHANNEL_DEVELOPMENT, core });
     }
 
     return lastReleaseTag({ channel: 'production' });
@@ -139,6 +153,14 @@ function changelogFromRef(branch, current) {
       return lastReleaseTag({ channel: slug, core });
     }
 
+    if (currentChannel === CHANNEL_QA) {
+      return lastReleaseTag({ channel: CHANNEL_QA, core });
+    }
+
+    if (currentChannel === CHANNEL_DEVELOPMENT) {
+      return lastReleaseTag({ channel: CHANNEL_DEVELOPMENT, core });
+    }
+
     return lastReleaseTag({ channel: 'production' });
   }
 
@@ -148,14 +170,22 @@ function changelogFromRef(branch, current) {
 function needsCoreBump(branch, current) {
   const currentChannel = channelOf(current);
 
+  if (branch === DEVELOPMENT_BRANCH) {
+    return currentChannel !== CHANNEL_DEVELOPMENT;
+  }
+
   if (branch === QA_BRANCH) {
-    return currentChannel !== CHANNEL_QA;
+    return currentChannel !== CHANNEL_QA && currentChannel !== CHANNEL_DEVELOPMENT;
   }
 
   if (isNamedReleaseBranch(branch)) {
     const slug = namedReleaseChannel(branch);
 
-    return currentChannel !== slug && currentChannel !== CHANNEL_QA;
+    return (
+      currentChannel !== slug &&
+      currentChannel !== CHANNEL_QA &&
+      currentChannel !== CHANNEL_DEVELOPMENT
+    );
   }
 
   return false;
@@ -174,7 +204,7 @@ function main() {
 
   if (!canCutRelease(branch)) {
     fail(
-      `npm run release must be run on ${QA_BRANCH}, a release:<slug> branch, or master (current: ${branch}).`,
+      `npm run release must be run on ${DEVELOPMENT_BRANCH}, ${QA_BRANCH}, a release:<slug> branch, or master (current: ${branch}).`,
     );
   }
 

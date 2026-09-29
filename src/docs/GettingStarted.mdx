@@ -95,4 +95,4 @@ You do not configure MUI X in the consumer app. Importing any `bhhc-design-syste
 
 For local Storybook and `npm run build:lib`, copy `.env.example` to `.env` and set `MUI_X_LICENSE_KEY`.
 
-CI/CD in Azure DevOps uses the same key as a secret pipeline variable and publishes to Azure Artifacts on `v*` tags created by `npm run release`. Prereleases use npm dist-tags `qa` and the `release:<slug>` name; production uses `latest`. See **Getting started** in the repo README and `dev-docs/VERSIONING.md`.
+CI/CD in Azure DevOps uses the same key as a secret pipeline variable and publishes to Azure Artifacts on `v*` tags created by `npm run release`. Prereleases use npm dist-tags `development`, `qa`, and the `release:<slug>` name; production uses `latest`. See **Getting started** in the repo README and `dev-docs/VERSIONING.md`.

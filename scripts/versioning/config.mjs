@@ -20,7 +20,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-Work lands on \`development\` with no version bump. Promote by cherry-pick: \`qa/*\` → \`qa\`,
+Work lands on \`development\` as \`x.y.z-development.N\`. Promote by cherry-pick: \`qa/*\` → \`qa\`,
 then \`release:*\` → \`master\`.
 
 `;
@@ -59,7 +59,7 @@ export const QA_PROMOTE_BRANCH_PATTERN = /^(?:qa[:/])(.+)$/u;
 export const NAMED_RELEASE_BRANCH_PATTERN = /^(?:release[:/])(.+)$/u;
 
 export const PROMOTION_HINT =
-  'Create qa/<slug> from qa and cherry-pick development (merge only to qa). Create release:<slug> from master and cherry-pick qa (merge only to master). Do not version development.';
+  'Version development with npm run release. Create qa/<slug> from qa and cherry-pick development (merge only to qa). Create release:<slug> from master and cherry-pick qa (merge only to master).';
 
 export function isQaPromoteBranch(branch) {
   return QA_PROMOTE_BRANCH_PATTERN.test(branch);

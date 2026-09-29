@@ -3,17 +3,25 @@ import test from 'node:test';
 
 import { namedReleaseChannel, nextVersion, versionAllowedOnRemote } from './version.mjs';
 
-test('does not cut versions on development', () => {
-  assert.throws(
-    () => nextVersion({ current: '0.0.0', branch: 'development', bump: 'minor' }),
-    /Do not cut versions on development/,
+test('starts and increments development prereleases', () => {
+  assert.equal(
+    nextVersion({ current: '0.0.0', branch: 'development', releaseAs: '1.0.0' }),
+    '1.0.0-development.1',
+  );
+  assert.equal(
+    nextVersion({ current: '1.0.0', branch: 'development', bump: 'minor' }),
+    '1.1.0-development.1',
+  );
+  assert.equal(
+    nextVersion({ current: '1.0.0-development.1', branch: 'development' }),
+    '1.0.0-development.2',
   );
 });
 
-test('starts and increments qa prereleases without a development version', () => {
-  assert.equal(nextVersion({ current: '0.0.0', branch: 'qa', releaseAs: '1.0.0' }), '1.0.0-qa.1');
-  assert.equal(nextVersion({ current: '1.0.0', branch: 'qa', bump: 'minor' }), '1.1.0-qa.1');
+test('promotes a development prerelease to qa without bumping the core', () => {
+  assert.equal(nextVersion({ current: '1.0.0-development.4', branch: 'qa' }), '1.0.0-qa.1');
   assert.equal(nextVersion({ current: '1.0.0-qa.1', branch: 'qa' }), '1.0.0-qa.2');
+  assert.equal(nextVersion({ current: '0.0.0', branch: 'qa', releaseAs: '1.0.0' }), '1.0.0-qa.1');
 });
 
 test('release branches use the same prerelease rules as qa', () => {
@@ -30,6 +38,10 @@ test('release branches use the same prerelease rules as qa', () => {
   assert.equal(
     nextVersion({ current: '1.0.0', branch: 'release:sprint-12', bump: 'patch' }),
     '1.0.1-sprint-12.1',
+  );
+  assert.equal(
+    nextVersion({ current: '1.0.0-development.4', branch: 'release:sprint-12' }),
+    '1.0.0-sprint-12.1',
   );
 });
 
@@ -51,13 +63,17 @@ test('rejects releases on feature branches', () => {
 
 test('allows pending versions on each remote', () => {
   assert.equal(versionAllowedOnRemote('0.0.0', 'development'), true);
-  assert.equal(versionAllowedOnRemote('1.0.0-qa.1', 'development'), true);
+  assert.equal(versionAllowedOnRemote('1.0.0-development.1', 'development'), true);
+  assert.equal(versionAllowedOnRemote('1.0.0-qa.1', 'development'), false);
   assert.equal(versionAllowedOnRemote('1.0.0', 'qa'), true);
+  assert.equal(versionAllowedOnRemote('1.0.0-development.1', 'qa'), true);
   assert.equal(versionAllowedOnRemote('1.0.0-qa.1', 'qa'), true);
   assert.equal(versionAllowedOnRemote('1.0.0-sprint-12.1', 'qa'), false);
+  assert.equal(versionAllowedOnRemote('1.0.0-development.1', 'qa/sprint-12'), true);
   assert.equal(versionAllowedOnRemote('1.0.0-qa.1', 'release:sprint-12'), true);
   assert.equal(versionAllowedOnRemote('1.0.0-sprint-12.1', 'release:sprint-12'), true);
   assert.equal(versionAllowedOnRemote('1.0.0-qa.1', 'master'), false);
+  assert.equal(versionAllowedOnRemote('1.0.0-development.1', 'master'), false);
   assert.equal(versionAllowedOnRemote('1.0.0-sprint-12.1', 'master'), true);
   assert.equal(versionAllowedOnRemote('1.0.0', 'master'), true);
 });
