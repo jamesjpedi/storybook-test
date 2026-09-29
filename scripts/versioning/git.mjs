@@ -48,6 +48,14 @@ export function refExists(ref) {
   return spawnSync('git', ['rev-parse', '--verify', '--quiet', ref]).status === 0;
 }
 
+export function isGitAncestor(ancestorRef, descendantRef) {
+  if (!refExists(ancestorRef) || !descendantRef) {
+    return undefined;
+  }
+
+  return spawnSync('git', ['merge-base', '--is-ancestor', ancestorRef, descendantRef]).status === 0;
+}
+
 export function fileAtRevision(revision, filePath) {
   return git(['show', `${revision}:${filePath}`], { allowFail: true });
 }

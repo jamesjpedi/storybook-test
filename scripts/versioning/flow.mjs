@@ -1,6 +1,9 @@
 import {
   DEVELOPMENT_BRANCH,
+  isNamedReleaseBranch,
+  isQaPromoteBranch,
   PRODUCTION_BRANCHES,
+  PROMOTION_HINT,
   QA_BRANCH,
   TAG_PATTERN,
   TAG_PREFIX,
@@ -33,15 +36,23 @@ export function isIntegrationBranch(branch) {
 
 export function allowedSourcesForRemote(remoteBranch) {
   if (remoteBranch === DEVELOPMENT_BRANCH) {
-    return 'a working branch, development, qa, or master (to sync)';
+    return 'a working branch, development, or master (to sync)';
   }
 
   if (remoteBranch === QA_BRANCH) {
-    return 'development or qa';
+    return 'a qa/<slug> or qa:<slug> cherry-pick branch (created from qa)';
   }
 
   if (isProductionBranch(remoteBranch)) {
-    return 'qa or master';
+    return 'a release/<slug> or release:<slug> branch (created from master)';
+  }
+
+  if (isQaPromoteBranch(remoteBranch)) {
+    return 'the same qa cherry-pick branch';
+  }
+
+  if (isNamedReleaseBranch(remoteBranch)) {
+    return 'the same release branch';
   }
 
   return 'a matching working branch';
@@ -56,17 +67,20 @@ export function canPushToRemote(localBranch, remoteBranch) {
     return (
       isWorkingBranch(localBranch) ||
       localBranch === DEVELOPMENT_BRANCH ||
-      localBranch === QA_BRANCH ||
       isProductionBranch(localBranch)
     );
   }
 
   if (remoteBranch === QA_BRANCH) {
-    return localBranch === QA_BRANCH || localBranch === DEVELOPMENT_BRANCH;
+    return localBranch === QA_BRANCH || isQaPromoteBranch(localBranch);
   }
 
   if (isProductionBranch(remoteBranch)) {
-    return isProductionBranch(localBranch) || localBranch === QA_BRANCH;
+    return isProductionBranch(localBranch) || isNamedReleaseBranch(localBranch);
+  }
+
+  if (isQaPromoteBranch(remoteBranch) || isNamedReleaseBranch(remoteBranch)) {
+    return false;
   }
 
   return isWorkingBranch(localBranch) && !isIntegrationBranch(localBranch);
@@ -78,7 +92,7 @@ export function assertAllowedPush(localBranch, remoteBranch) {
   }
 
   throw new Error(
-    `Refusing to push ${localBranch} → ${remoteBranch}. ${remoteBranch} only accepts ${allowedSourcesForRemote(remoteBranch)}. Promotion is development → qa → master.`,
+    `Refusing to push ${localBranch} → ${remoteBranch}. ${remoteBranch} only accepts ${allowedSourcesForRemote(remoteBranch)}. ${PROMOTION_HINT}`,
   );
 }
 
@@ -98,7 +112,7 @@ export function assertValidReleaseTag(tagName) {
   }
 
   throw new Error(
-    `Tag "${tagName}" is not allowed. Use vX.Y.Z, vX.Y.Z-development.N, or vX.Y.Z-qa.N.`,
+    `Tag "${tagName}" is not allowed. Use vX.Y.Z, vX.Y.Z-qa.N, or vX.Y.Z-<release-slug>.N.`,
   );
 }
 
@@ -112,6 +126,18 @@ export function assertTagMatchesVersion(tagName, version) {
       `Tag ${tagName} does not match package.json version ${version} (expected ${expected}).`,
     );
   }
+}
+
+export function requiredBaseBranch(branch) {
+  if (isQaPromoteBranch(branch)) {
+    return QA_BRANCH;
+  }
+
+  if (isNamedReleaseBranch(branch)) {
+    return 'master';
+  }
+
+  return undefined;
 }
 
 export function parsePushLine(line) {
@@ -130,4 +156,10 @@ export function isZeroSha(sha) {
   return Boolean(sha && /^0+$/u.test(sha));
 }
 
-export { DEVELOPMENT_BRANCH, PRODUCTION_BRANCHES, QA_BRANCH };
+export {
+  DEVELOPMENT_BRANCH,
+  isNamedReleaseBranch,
+  isQaPromoteBranch,
+  PRODUCTION_BRANCHES,
+  QA_BRANCH,
+};

@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 
+import { isNamedReleaseBranch, isQaPromoteBranch, QA_BRANCH } from './versioning/config.mjs';
+
 const eslintPattern = /\.(?:ts|tsx|js|jsx|mjs|cjs)$/u;
 const prettierPattern = /\.(?:ts|tsx|js|jsx|mjs|cjs|json|md|mdx|css|yml|yaml|html)$/u;
 const typecheckPattern = /\.(?:ts|tsx)$/u;
@@ -34,6 +36,16 @@ function refExists(ref) {
 const INTEGRATION_BRANCHES = ['development', 'qa', 'master', 'main'];
 
 function defaultMainRef() {
+  const current = git(['rev-parse', '--abbrev-ref', 'HEAD']);
+
+  if (isNamedReleaseBranch(current) || current === 'master' || current === 'main') {
+    return ['origin/master', 'origin/main', 'master', 'main'].find((ref) => refExists(ref));
+  }
+
+  if (isQaPromoteBranch(current) || current === QA_BRANCH) {
+    return ['origin/qa', 'qa'].find((ref) => refExists(ref));
+  }
+
   const candidates = [
     'origin/development',
     'development',

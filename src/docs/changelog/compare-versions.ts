@@ -1,6 +1,6 @@
 /**
  * Compare SemVer 2.0 versions for changelog ordering.
- * Prereleases sort below the matching stable version: 1.0.0-development.N < 1.0.0-qa.N < 1.0.0.
+ * Prereleases sort below the matching stable version: 1.0.0-qa.N < 1.0.0-<slug>.N < 1.0.0.
  */
 function parseIdentifier(part: string): string | number {
   return /^\d+$/u.test(part) ? Number(part) : part;

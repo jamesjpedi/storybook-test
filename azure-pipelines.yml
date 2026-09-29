@@ -2,7 +2,10 @@
 #
 # Quality gates run as npm prebuild hooks on changed files only (no --fix).
 # `npm run build:lib` / `build-storybook` fail if ESLint, Prettier, or typecheck fail.
-# Versioning gates enforce development → qa → master and vX.Y.Z[-development.N|-qa.N] tags.
+# Versioning gates enforce cherry-pick promotion:
+#   development (no version) → qa/<slug> → qa (x.y.z-qa.N)
+#   → release:<slug> (x.y.z-<slug>.N) → master (x.y.z)
+# Tags: vX.Y.Z, vX.Y.Z-qa.N, or vX.Y.Z-<slug>.N.
 #
 # Required pipeline (secret) variable:
 #   MUI_X_LICENSE_KEY  — MUI X Premium license; inlined into the published package
@@ -13,15 +16,17 @@
 #
 # Grant the project Build Service "Contributor" on the feed so npm publish can write.
 # Publish runs only on tags matching v* produced by `npm run release`.
-# Dist-tags: development → development, qa → qa, stable → latest.
+# Dist-tags: qa → qa, release slug → that slug, stable → latest.
 
 trigger:
   branches:
     include:
       - development
       - qa
+      - qa/*
       - master
       - main
+      - release/*
   tags:
     include:
       - v*
@@ -82,7 +87,7 @@ stages:
             condition: eq(variables['Build.Reason'], 'PullRequest')
 
           - script: node scripts/versioning/check-flow.mjs --ci
-            displayName: Version flow (development → qa → master)
+            displayName: Version flow (cherry-pick promotion)
 
           - script: npm run test:versioning
             displayName: Versioning unit tests

@@ -14,9 +14,8 @@ import {
 import { inferBump, parseCommit } from './commits.mjs';
 import {
   CHANGELOG_PATH,
-  CHANNEL_DEVELOPMENT,
   CHANNEL_QA,
-  DEVELOPMENT_BRANCH,
+  isNamedReleaseBranch,
   PACKAGE_JSON_PATH,
   QA_BRANCH,
   RELEASE_COMMIT_SCOPE,
@@ -36,10 +35,11 @@ import {
   tagExists,
 } from './git.mjs';
 import {
+  canCutRelease,
   channelOf,
   coreVersion,
   isProductionBranch,
-  isReleaseBranch,
+  namedReleaseChannel,
   nextVersion,
 } from './version.mjs';
 
@@ -132,15 +132,33 @@ function changelogFromRef(branch, current) {
     return lastReleaseTag({ channel: 'production' });
   }
 
-  if (currentChannel === CHANNEL_DEVELOPMENT) {
-    return lastReleaseTag({ channel: CHANNEL_DEVELOPMENT, core });
+  if (isNamedReleaseBranch(branch)) {
+    const slug = namedReleaseChannel(branch);
+
+    if (currentChannel === slug) {
+      return lastReleaseTag({ channel: slug, core });
+    }
+
+    return lastReleaseTag({ channel: 'production' });
   }
 
   return lastReleaseTag({ channel: 'production' });
 }
 
 function needsCoreBump(branch, current) {
-  return branch === DEVELOPMENT_BRANCH && channelOf(current) !== CHANNEL_DEVELOPMENT;
+  const currentChannel = channelOf(current);
+
+  if (branch === QA_BRANCH) {
+    return currentChannel !== CHANNEL_QA;
+  }
+
+  if (isNamedReleaseBranch(branch)) {
+    const slug = namedReleaseChannel(branch);
+
+    return currentChannel !== slug && currentChannel !== CHANNEL_QA;
+  }
+
+  return false;
 }
 
 function main() {
@@ -154,9 +172,9 @@ function main() {
 
   const branch = currentBranch();
 
-  if (!isReleaseBranch(branch)) {
+  if (!canCutRelease(branch)) {
     fail(
-      `npm run release must be run on ${DEVELOPMENT_BRANCH}, ${QA_BRANCH}, or master (current: ${branch}).`,
+      `npm run release must be run on ${QA_BRANCH}, a release:<slug> branch, or master (current: ${branch}).`,
     );
   }
 

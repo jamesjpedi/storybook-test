@@ -20,7 +20,7 @@ npm run format         # Prettier write on all supported files
 npm run format:check  # Prettier check (whole tree)
 npm run release        # Bump package.json, changelog, and annotated v* tag
 npm run release:dry-run
-npm run version:check  # Confirm the current branch follows development → qa → master
+npm run version:check  # Confirm cherry-pick promotion (qa/* → qa, release:* → master)
 npm run version:check:ci
 ```
 
@@ -28,25 +28,25 @@ npm run version:check:ci
 
 Copy `.env.example` to `.env` and set `MUI_X_LICENSE_KEY` before `build:lib`.
 
-Code style, TypeScript, ESLint, Prettier, and commit hooks are documented in [dev-docs/CODE_STANDARDS.md](dev-docs/CODE_STANDARDS.md). Semantic versioning, promotion (`development` → `qa` → `master`), changelog, and tagging are documented in [dev-docs/VERSIONING.md](dev-docs/VERSIONING.md). Commits lint **staged** files (and may auto-fix). Pre-build checks **fail only** on changed PR/branch files.
+Code style, TypeScript, ESLint, Prettier, and commit hooks are documented in [dev-docs/CODE_STANDARDS.md](dev-docs/CODE_STANDARDS.md). Semantic versioning, cherry-pick promotion (`qa/*` → `qa`, `release:*` → `master`; no versioning on `development`), changelog, and tagging are documented in [dev-docs/VERSIONING.md](dev-docs/VERSIONING.md). Commits lint **staged** files (and may auto-fix). Pre-build checks **fail only** on changed PR/branch files.
 
 ## Azure DevOps
 
-[azure-pipelines.yml](azure-pipelines.yml) runs on PRs and pushes to `development`, `qa`, and `master` (plus `main` as an alias), and on `v*` tags:
+[azure-pipelines.yml](azure-pipelines.yml) runs on PRs and pushes to `development`, `qa`, `qa/*`, `release/*`, and `master` (plus `main` as an alias), and on `v*` tags:
 
 1. **Commitlint** (pull requests) — Conventional Commits + `AB#` story ids on the PR range
-2. **Version flow** — `development` → `qa` → `master`; tag must match `package.json`
+2. **Version flow** — `qa/<slug>` → `qa` and `release:<slug>` → `master`; `development` is not versioned; tag must match `package.json`
 3. **Versioning tests** — bump, changelog, and promotion unit tests
 4. **`build:lib`** — `check:changed` then library build with MUI X signing
 5. **`build-storybook`** — same `check:changed` then Storybook
-6. Publishes `bhhc-design-system` to Azure Artifacts on `v*` tags from `npm run release`, with npm dist-tag `development`, `qa`, or `latest`
+6. Publishes `bhhc-design-system` to Azure Artifacts on `v*` tags from `npm run release`, with npm dist-tag `qa`, `<release-slug>`, or `latest`
 
 Setup:
 
 1. Create pipeline variable **`MUI_X_LICENSE_KEY`** (secret). Do not commit the key.
 2. Create an Azure Artifacts npm feed. Set pipeline variable **`npmFeed`** to that feed name (default in YAML: `bhhc-design-system`).
 3. Give the project **Build Service** account **Contributor** on the feed.
-4. On `development`, `qa`, or `master`, run `npm run release` (see [dev-docs/VERSIONING.md](dev-docs/VERSIONING.md)), then `git push --follow-tags`. Do not edit `"version"` or create `v*` tags manually.
+4. On `qa` or a `release:<slug>` branch (and then `master`), run `npm run release` (see [dev-docs/VERSIONING.md](dev-docs/VERSIONING.md)), then `git push --follow-tags`. Do not edit `"version"` or create `v*` tags manually. Never version `development`.
 
 ## Layout
 
@@ -62,4 +62,4 @@ See [GETTING_STARTED.md](GETTING_STARTED.md).
 
 ## Add a changelog version
 
-Do not add changelog files by hand. Cut a version with `npm run release` on `development`, `qa`, or `master`. That updates `package.json`, `CHANGELOG.md`, `src/docs/changelog/versions/<version>.md`, and an annotated `v*` tag. Full rules are in [dev-docs/VERSIONING.md](dev-docs/VERSIONING.md).
+Do not add changelog files by hand. Cut a version with `npm run release` on `qa`, a `release:<slug>` branch, or `master`. That updates `package.json`, `CHANGELOG.md`, `src/docs/changelog/versions/<version>.md`, and an annotated `v*` tag. Full rules are in [dev-docs/VERSIONING.md](dev-docs/VERSIONING.md).

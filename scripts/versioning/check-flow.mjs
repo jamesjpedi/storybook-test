@@ -2,20 +2,23 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { PACKAGE_JSON_PATH } from './config.mjs';
+import { PACKAGE_JSON_PATH, PROMOTION_HINT } from './config.mjs';
 import {
   assertAllowedPush,
   assertTagMatchesVersion,
   assertValidReleaseTag,
   assertVersionForRemote,
   isIntegrationBranch,
+  isNamedReleaseBranch,
+  isQaPromoteBranch,
   isTagRef,
   isZeroSha,
   normalizeBranch,
   parsePushLine,
+  requiredBaseBranch,
   tagNameFromRef,
 } from './flow.mjs';
-import { currentBranch, git, packageVersionAt } from './git.mjs';
+import { currentBranch, git, isGitAncestor, packageVersionAt, refExists } from './git.mjs';
 
 function fail(message) {
   console.error(message);
@@ -77,7 +80,7 @@ export function assertCiContext(context, version) {
   if (context.kind === 'pull-request') {
     assertAllowedPush(context.source, context.target);
 
-    if (isIntegrationBranch(context.target)) {
+    if (isIntegrationBranch(context.target) || isNamedReleaseBranch(context.target)) {
       assertVersionForRemote(version, context.target);
     }
 
@@ -91,7 +94,11 @@ export function assertCiContext(context, version) {
   }
 
   if (context.kind === 'branch') {
-    if (isIntegrationBranch(context.branch)) {
+    if (
+      isIntegrationBranch(context.branch) ||
+      isNamedReleaseBranch(context.branch) ||
+      isQaPromoteBranch(context.branch)
+    ) {
       assertVersionForRemote(version, context.branch);
     }
 
@@ -101,24 +108,68 @@ export function assertCiContext(context, version) {
   return undefined;
 }
 
-function checkCurrentBranch() {
-  const branch = currentBranch();
-  const version = readPackageVersion(repoRoot());
+function baseRefCandidates(base) {
+  if (base === 'master') {
+    return ['origin/master', 'master', 'origin/main', 'main'];
+  }
 
-  if (!isIntegrationBranch(branch)) {
-    console.error(`version:check passed on working branch ${branch} (${version}).`);
+  return [`origin/${base}`, base];
+}
+
+export function assertCreatedFromBase(branch, sha) {
+  const base = requiredBaseBranch(branch);
+
+  if (!base) {
+    return;
+  }
+
+  const known = baseRefCandidates(base).find((ref) => refExists(ref));
+
+  if (!known) {
+    console.error(
+      `Warning: could not verify ${branch} was created from ${base} (missing ${base} ref).`,
+    );
 
     return;
   }
 
-  assertVersionForRemote(version, branch);
-  console.error(`version:check passed on ${branch} (${version}).`);
+  const descendant = sha && !isZeroSha(sha) ? sha : 'HEAD';
+  const ancestor = isGitAncestor(known, descendant);
+
+  if (ancestor === false) {
+    throw new Error(`${branch} must be created from ${base}, then cherry-pick. ${PROMOTION_HINT}`);
+  }
+}
+
+function checkCurrentBranch() {
+  const branch = currentBranch();
+  const version = readPackageVersion(repoRoot());
+
+  if (isNamedReleaseBranch(branch) || isQaPromoteBranch(branch) || isIntegrationBranch(branch)) {
+    assertVersionForRemote(version, branch);
+    assertCreatedFromBase(branch, 'HEAD');
+    console.error(`version:check passed on ${branch} (${version}).`);
+
+    return;
+  }
+
+  console.error(`version:check passed on working branch ${branch} (${version}).`);
 }
 
 function checkAzureCi(env) {
+  git(['fetch', '--quiet', 'origin', 'development', 'qa', 'master', 'main'], { allowFail: true });
+
   const context = resolveCiContext(env);
   const version = readPackageVersion(repoRoot());
   const summary = assertCiContext(context, version);
+
+  if (context.kind === 'pull-request') {
+    assertCreatedFromBase(context.source, env.SYSTEM_PULLREQUEST_SOURCECOMMITID ?? 'HEAD');
+  }
+
+  if (context.kind === 'branch') {
+    assertCreatedFromBase(context.branch, 'HEAD');
+  }
 
   if (!summary) {
     checkCurrentBranch();
@@ -169,10 +220,15 @@ function checkPrePush(input) {
         : normalizeBranch(parsed.localRef);
 
     assertAllowedPush(localBranch, remoteBranch);
+    assertCreatedFromBase(localBranch, parsed.localSha);
 
     const version = packageVersionAt(parsed.localSha) ?? readPackageVersion(repoRoot());
 
-    if (isIntegrationBranch(remoteBranch)) {
+    if (
+      isIntegrationBranch(remoteBranch) ||
+      isNamedReleaseBranch(remoteBranch) ||
+      isQaPromoteBranch(remoteBranch)
+    ) {
       assertVersionForRemote(version, remoteBranch);
     }
   }

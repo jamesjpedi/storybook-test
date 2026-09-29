@@ -78,10 +78,10 @@ Use **DataGrid** from the premium entry. It is MUI X `DataGridPremium` (also exp
 
 ## Publish a changelog version
 
-Do not add changelog files by hand. On `development`, `qa`, or `master`:
+Do not add changelog files by hand. On `qa`, a `release:<slug>` branch, or `master`:
 
 ```bash
 npm run release
 ```
 
-That updates `package.json`, `CHANGELOG.md`, `src/docs/changelog/versions/<version>.md`, and an annotated `v*` tag (`1.0.0-development.1`, `1.0.0-qa.1`, `1.0.0`). Open **Changelog** in the sidebar to pick a version. Full rules are in `dev-docs/VERSIONING.md`.
+That updates `package.json`, `CHANGELOG.md`, `src/docs/changelog/versions/<version>.md`, and an annotated `v*` tag (`1.0.0-qa.1`, `1.0.0-<slug>.1`, `1.0.0`). Open **Changelog** in the sidebar to pick a version. Full rules are in `dev-docs/VERSIONING.md`.

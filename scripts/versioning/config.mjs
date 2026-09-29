@@ -19,8 +19,9 @@ export const CHANGELOG_HEADER = `# Changelog
 All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html)
-with promotion channels \`development\` → \`qa\` → production (\`master\`).
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+Work lands on \`development\` with no version bump. Promote by cherry-pick: \`qa/*\` → \`qa\`,
+then \`release:*\` → \`master\`.
 
 `;
 
@@ -48,7 +49,28 @@ export const CHANGELOG_SECTION_ORDER = [
 
 export const STORY_ID_PATTERN = /AB#(\d+)/gu;
 
-export const TAG_PATTERN = /^v\d+\.\d+\.\d+(?:-(?:development|qa)\.\d+)?$/u;
+export const TAG_PATTERN = /^v\d+\.\d+\.\d+(?:-[a-zA-Z][a-zA-Z0-9-]*\.\d+)?$/u;
 
 export const WORKING_BRANCH_PATTERN =
   /^(?:feature|bugfix|hotfix|chore|docs|test|refactor|fix|perf|ci|style|build)\/.+/u;
+
+export const QA_PROMOTE_BRANCH_PATTERN = /^(?:qa[:/])(.+)$/u;
+
+export const NAMED_RELEASE_BRANCH_PATTERN = /^(?:release[:/])(.+)$/u;
+
+export const PROMOTION_HINT =
+  'Create qa/<slug> from qa and cherry-pick development (merge only to qa). Create release:<slug> from master and cherry-pick qa (merge only to master). Do not version development.';
+
+export function isQaPromoteBranch(branch) {
+  return QA_PROMOTE_BRANCH_PATTERN.test(branch);
+}
+
+export function isNamedReleaseBranch(branch) {
+  return NAMED_RELEASE_BRANCH_PATTERN.test(branch);
+}
+
+export function namedReleaseSlug(branch) {
+  const match = NAMED_RELEASE_BRANCH_PATTERN.exec(branch);
+
+  return match?.[1];
+}

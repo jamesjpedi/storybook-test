@@ -22,7 +22,7 @@ ESLint is pinned to **9.x** because `eslint-plugin-react` and `eslint-plugin-jsx
 | `npm run check`         | `format:check` + `lint` + `typecheck` + versioning tests + `version:check` (whole tree, no `--fix`) |
 | `npm run check:changed` | Same lint/format/typecheck, only files changed vs the PR target or `development` (no `--fix`)       |
 | `npm run release`       | Bump `package.json`, generate changelog, commit, and tag (see [VERSIONING.md](VERSIONING.md))       |
-| `npm run version:check` | Fail if the current branch’s version skips `development` → `qa` → `master`                          |
+| `npm run version:check` | Fail if promotion skips `qa/<slug>` → `qa` or `release:<slug>` → `master`                           |
 | `npm run typecheck`     | `tsc -b` across app and node projects                                                               |
 | `npm run lint`          | `eslint . --max-warnings=0` (warnings fail)                                                         |
 | `npm run lint:fix`      | Same, with `--fix`                                                                                  |
@@ -743,6 +743,6 @@ Unstaged files are not rewritten. `npm run check` still scans the whole tree (no
 | Versioning tests                 | Every CI run  | `npm run test:versioning`                               |
 | Check (fail-only, changed files) | Every CI run  | `prebuild:lib` / `prebuild-storybook` → `check:changed` |
 | Library / Storybook build        | Every CI run  | `build:lib`, `build-storybook`                          |
-| npm publish                      | `v*` tags     | `npm publish --tag development` / `qa` / `latest`       |
+| npm publish                      | `v*` tags     | `npm publish --tag qa` / `<slug>` / `latest`            |
 
 `npm ci` sets `HUSKY=0` so install does not install git hooks on the agent. Merge commits are ignored by Commitlint’s default ignores.
