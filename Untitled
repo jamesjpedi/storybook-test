@@ -1,6 +1,9 @@
-# One-time baseline tag. Run manually from the pipeline UI.
-# Tags the current main commit as v<package.json version>, then makes that
-# commit reachable from qa and dev, which is how semantic-release sees a stable tag.
+# One-time baseline tags. Run manually from the pipeline UI.
+# Tags each branch tip in place. qa and dev are not merged, because those
+# histories conflict. semantic-release reads the tag on the branch it releases:
+#   main -> vX.Y.Z
+#   qa   -> vX.Y.Z-qa.0
+#   dev  -> vX.Y.Z-dev.0
 trigger: none
 pr: none
 
@@ -18,7 +21,7 @@ variables:
 
 jobs:
   - job: BaselineTag
-    displayName: "Tag main and apply to qa and dev"
+    displayName: "Tag main, qa, and dev in place"
     pool:
       vmImage: windows-latest
     steps:
@@ -38,43 +41,37 @@ jobs:
           Invoke-Git config user.name "Azure Pipelines"
           Invoke-Git fetch origin main qa dev --tags --force
 
-          Invoke-Git checkout -B main origin/main
-
-          $packagePath = "src/$(ReactProjectName)/package.json"
-          $packageVersion = (Get-Content -Raw $packagePath | ConvertFrom-Json).version.Split("-")[0]
           $requested = "${{ parameters.version }}".Trim()
-          $version = if ([string]::IsNullOrWhiteSpace($requested)) { $packageVersion } else { $requested }
-          if ($version -notmatch "^\d+\.\d+\.\d+$") { throw "Version '$version' must be X.Y.Z with no prerelease suffix." }
-          if ($version -ne $packageVersion) {
-            throw "main package.json is $packageVersion, but the requested tag version is $version."
-          }
+          if ($requested -notmatch "^\d+\.\d+\.\d+$") { throw "Version '$requested' must be X.Y.Z with no prerelease suffix." }
 
-          $tag = "v$version"
-          $mainCommit = Invoke-Git rev-parse HEAD
-          $existing = git rev-parse -q --verify "refs/tags/$tag"
-          if ($LASTEXITCODE -eq 0) {
-            $taggedCommit = Invoke-Git rev-parse "${tag}^{}"
-            if ($taggedCommit -ne $mainCommit) {
-              throw "Tag $tag already points at $taggedCommit, not main HEAD $mainCommit."
-            }
-            Write-Host "Tag $tag already points at main HEAD."
-          } else {
-            Invoke-Git tag -a $tag -m "chore: baseline version $version"
-            Write-Host "Created $tag on main $mainCommit."
-          }
+          $tags = @(
+            @{ Branch = "main"; Tag = "v$requested" },
+            @{ Branch = "qa"; Tag = "v$requested-qa.0" },
+            @{ Branch = "dev"; Tag = "v$requested-dev.0" }
+          )
 
-          foreach ($branch in @("qa", "dev")) {
+          foreach ($item in $tags) {
+            $branch = $item.Branch
+            $tag = $item.Tag
             Invoke-Git checkout -B $branch "origin/$branch"
-            git merge-base --is-ancestor $tag HEAD
+            $head = (Invoke-Git rev-parse HEAD).Trim()
+            $packagePath = "src/$(ReactProjectName)/package.json"
+            $packageVersion = (Get-Content -Raw $packagePath | ConvertFrom-Json).version
+            Write-Host "$branch HEAD $head package.json version $packageVersion, tag $tag"
+
+            $existing = git rev-parse -q --verify "refs/tags/$tag"
             if ($LASTEXITCODE -eq 0) {
-              Write-Host "$branch already contains $tag."
-              continue
+              $taggedCommit = (Invoke-Git rev-parse "${tag}^{}").Trim()
+              if ($taggedCommit -ne $head) {
+                throw "Tag $tag already points at $taggedCommit, not $branch HEAD $head."
+              }
+              Write-Host "Tag $tag already points at $branch HEAD."
+            } else {
+              Invoke-Git tag -a $tag $head -m "chore: baseline $tag"
+              Write-Host "Created $tag on $branch $head."
             }
-            Invoke-Git merge origin/main -m "chore: merge main into $branch so $tag is reachable [skip ci]"
-            Invoke-Git push origin "HEAD:refs/heads/$branch"
-            Write-Host "Merged main into $branch."
           }
 
-          Invoke-Git push origin "refs/tags/${tag}:refs/tags/${tag}"
-          Write-Host "Pushed $tag. dev, qa, and main can all reach it."
-        displayName: "Tag main and merge into qa and dev"
+          Invoke-Git push origin refs/tags/v$requested refs/tags/v$requested-qa.0 refs/tags/v$requested-dev.0
+          Write-Host "Pushed v$requested, v$requested-qa.0, and v$requested-dev.0. No branches were merged."
+        displayName: "Tag main, qa, and dev"
