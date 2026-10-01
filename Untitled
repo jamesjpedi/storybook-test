@@ -1,0 +1,80 @@
+# One-time baseline tag. Run manually from the pipeline UI.
+# Tags the current main commit as v<package.json version>, then makes that
+# commit reachable from qa and dev, which is how semantic-release sees a stable tag.
+trigger: none
+pr: none
+
+parameters:
+  - name: version
+    displayName: "Baseline version. Leave empty to read package.json on main."
+    type: string
+    default: "0.6.0"
+
+name: baseline-tag-$(Date:yyMMdd)$(Rev:.rrr)
+
+variables:
+  - name: ReactProjectName
+    value: BHHC.Design.Components.React
+
+jobs:
+  - job: BaselineTag
+    displayName: "Tag main and apply to qa and dev"
+    pool:
+      vmImage: windows-latest
+    steps:
+      - checkout: self
+        fetchDepth: 0
+        persistCredentials: true
+        clean: true
+
+      - pwsh: |
+          $ErrorActionPreference = "Stop"
+          function Invoke-Git {
+            & git @args
+            if ($LASTEXITCODE -ne 0) { throw "git $($args -join ' ') failed with exit $LASTEXITCODE" }
+          }
+
+          Invoke-Git config user.email "azure-pipelines@local"
+          Invoke-Git config user.name "Azure Pipelines"
+          Invoke-Git fetch origin main qa dev --tags --force
+
+          Invoke-Git checkout -B main origin/main
+
+          $packagePath = "src/$(ReactProjectName)/package.json"
+          $packageVersion = (Get-Content -Raw $packagePath | ConvertFrom-Json).version.Split("-")[0]
+          $requested = "${{ parameters.version }}".Trim()
+          $version = if ([string]::IsNullOrWhiteSpace($requested)) { $packageVersion } else { $requested }
+          if ($version -notmatch "^\d+\.\d+\.\d+$") { throw "Version '$version' must be X.Y.Z with no prerelease suffix." }
+          if ($version -ne $packageVersion) {
+            throw "main package.json is $packageVersion, but the requested tag version is $version."
+          }
+
+          $tag = "v$version"
+          $mainCommit = Invoke-Git rev-parse HEAD
+          $existing = git rev-parse -q --verify "refs/tags/$tag"
+          if ($LASTEXITCODE -eq 0) {
+            $taggedCommit = Invoke-Git rev-parse "${tag}^{}"
+            if ($taggedCommit -ne $mainCommit) {
+              throw "Tag $tag already points at $taggedCommit, not main HEAD $mainCommit."
+            }
+            Write-Host "Tag $tag already points at main HEAD."
+          } else {
+            Invoke-Git tag -a $tag -m "chore: baseline version $version"
+            Write-Host "Created $tag on main $mainCommit."
+          }
+
+          foreach ($branch in @("qa", "dev")) {
+            Invoke-Git checkout -B $branch "origin/$branch"
+            git merge-base --is-ancestor $tag HEAD
+            if ($LASTEXITCODE -eq 0) {
+              Write-Host "$branch already contains $tag."
+              continue
+            }
+            Invoke-Git merge origin/main -m "chore: merge main into $branch so $tag is reachable [skip ci]"
+            Invoke-Git push origin "HEAD:refs/heads/$branch"
+            Write-Host "Merged main into $branch."
+          }
+
+          Invoke-Git push origin "refs/tags/${tag}:refs/tags/${tag}"
+          Write-Host "Pushed $tag. dev, qa, and main can all reach it."
+        displayName: "Tag main and merge into qa and dev"
